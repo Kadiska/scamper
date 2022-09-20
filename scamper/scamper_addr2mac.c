@@ -298,6 +298,13 @@ static int addr2mac_init_linux()
       goto err;
     }
 
+  #if defined (__ANDROID__)
+    if(android_get_device_api_level() >= 30)
+      {
+        goto done;
+      }
+  #endif
+
   len = nlmsg->nlmsg_len;
   if((ssize = send(fd, buf, len, 0)) < len)
     {

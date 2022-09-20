@@ -472,7 +472,7 @@ int scamper_tbit_pkt_tcpack(const scamper_tbit_pkt_t *pkt, uint32_t *ack)
 int scamper_tbit_icw_size(const scamper_tbit_t *tbit, uint32_t *icw_out)
 {
   const scamper_tbit_icw_t *icw = tbit->data;
-  const scamper_tbit_pkt_t *pkt;
+  const scamper_tbit_pkt_t *pkt = NULL;
   scamper_tbit_tcpq_t *q = NULL;
   uint32_t i, u32, seq, start_seq;
   uint16_t iplen, datalen;
@@ -540,7 +540,7 @@ int scamper_tbit_icw_size(const scamper_tbit_t *tbit, uint32_t *icw_out)
 
 int scamper_tbit_stats(const scamper_tbit_t *tbit, scamper_tbit_stats_t *stats)
 {
-  const scamper_tbit_pkt_t *pkt, *syn;
+  const scamper_tbit_pkt_t *pkt = NULL, *syn;
   scamper_tbit_tcpq_t *q = NULL;
   scamper_tbit_tcpqe_t *qe;
   uint32_t rcv_nxt, seq;

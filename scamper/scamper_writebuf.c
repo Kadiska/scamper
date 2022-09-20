@@ -288,7 +288,7 @@ size_t scamper_writebuf_len2(const scamper_writebuf_t *wb,char *str,size_t len)
  * register an iovec to send when it can be sent without blocking the
  * rest of scamper.
  */
-int scamper_writebuf_send(scamper_writebuf_t *wb, const void *data, size_t len)
+int scamper_writebuf_send(scamper_writebuf_t *wb, const char *data, size_t len)
 {
   size_t s, x;
 

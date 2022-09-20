@@ -476,13 +476,13 @@ static int extract_mx(scamper_host_rr_t *rr, uint8_t *pktbuf, size_t pktlen,
 
 static void do_host_read(const int fd, void *param)
 {
-  scamper_task_t *task;
-  scamper_host_t *host;
+  scamper_task_t *task = NULL;
+  scamper_host_t *host = NULL;
   host_state_t *state;
   struct in6_addr in6;
   struct in_addr in4;
   slist_t *rr_list = NULL;
-  scamper_host_rr_t **rrs;
+  scamper_host_rr_t **rrs = NULL;
   dlist_node_t *dn;
   host_id_t *hid;
   scamper_host_query_t *q = NULL;

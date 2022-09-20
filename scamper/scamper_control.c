@@ -63,7 +63,7 @@
  */
 typedef struct client_obj
 {
-  void   *data;
+  char   *data;
   size_t  len;
 } client_obj_t;
 

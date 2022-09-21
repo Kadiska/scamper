@@ -59,3 +59,6 @@
 /utils/sc_wartsdump/sc_wartsdump
 /utils/sc_wartsfilter/sc_wartsfilter
 /utils/sc_wartsfix/sc_wartsfix
+
+/confdefs.h
+/conftest.*

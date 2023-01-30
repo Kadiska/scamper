@@ -662,8 +662,9 @@ static void rtsock_parsemsg(uint8_t *buf, size_t len)
  * trace matching the address.  we then take the result from the route
  * lookup and apply it to the trace.
  */
-void scamper_rtsock_read_cb(const int fd, void *param)
+void scamper_rtsock_read_cb(void * fd_, void *param)
 {
+  int fd = *((int *)fd_);
   uint8_t buf[2048];
   ssize_t len;
 
@@ -717,30 +718,78 @@ int scamper_rtsock_open()
 #ifdef _WIN32
 static int scamper_rtsock_getroute4(scamper_route_t *route)
 {
-  struct in_addr *in = route->dst->addr;
-  MIB_IPFORWARDROW fw;
-  DWORD dw;
+    struct in_addr* in = route->dst->addr;
+    SOCKADDR_INET address;
+    DWORD BestIfIndex;
+    MIB_IPFORWARD_ROW2 fw;
+    SOCKADDR_INET BestSourceAddress;
+    DWORD dw;
 
-  if((dw = GetBestRoute(in->s_addr, 0, &fw)) != NO_ERROR)
+    address.si_family = AF_INET;
+    address.Ipv4.sin_addr = *in;
+
+    if ((dw = GetBestInterfaceEx(&address, &BestIfIndex)) != NO_ERROR) {
+        return -1;
+    }
+    if ((dw = GetBestRoute2(NULL, BestIfIndex, NULL, &address, 0, &fw, &BestSourceAddress)) != NO_ERROR)
+    {
+        route->error = dw;
+        return -1;
+    }
+
+    route->ifindex = fw.InterfaceIndex;
+    /* determine the gateway address to use, if one is specified */
+    if ((dw = fw.NextHop.Ipv4.sin_addr.s_addr) != 0)
+    {
+        if ((route->gw = scamper_addrcache_get_ipv4(addrcache, &dw)) == NULL)
+        {
+            route->error = errno;
+            return -1;
+        }
+    }
+
+    return 0;
+}
+
+static int scamper_rtsock_getroute6(scamper_route_t *route)
+{
+  struct in6_addr *in = route->dst->addr;
+  SOCKADDR_INET address;
+  DWORD BestIfIndex;
+  MIB_IPFORWARD_ROW2 fw;
+  SOCKADDR_INET BestSourceAddress;
+  DWORD dw;
+  char hip[100];
+
+  address.si_family = AF_INET6;
+  memcpy(&(address.Ipv6.sin6_addr), in, sizeof(struct in6_addr));
+
+  if ((dw = GetBestInterfaceEx(&address, &BestIfIndex)) != NO_ERROR) {
+      return -1;
+  }
+  if((dw = GetBestRoute2(NULL, BestIfIndex, NULL, &address, 0, &fw, &BestSourceAddress)) != NO_ERROR)
     {
       route->error = dw;
       return -1;
     }
 
-  route->ifindex = fw.dwForwardIfIndex;
-
+  route->ifindex = fw.InterfaceIndex;
   /* determine the gateway address to use, if one is specified */
-  if((dw = fw.dwForwardNextHop) != 0)
+ 
+  uint8_t empty[sizeof(struct in6_addr)];
+  memset(empty, 0, sizeof(empty));
+
+  if((memcmp(&fw.NextHop.Ipv6.sin6_addr, empty, sizeof(fw.NextHop.Ipv6.sin6_addr))) != 0)
     {
-      if((route->gw = scamper_addrcache_get_ipv4(addrcache, &dw)) == NULL)
+      if((route->gw = scamper_addrcache_get_ipv6(addrcache, &(fw.NextHop.Ipv6.sin6_addr))) == NULL)
 	{
-	  route->error = errno;
+      route->error = errno;
 	  return -1;
 	}
     }
-
   return 0;
 }
+
 
 int scamper_rtsock_getroute(scamper_route_t *route)
 {
@@ -750,6 +799,14 @@ int scamper_rtsock_getroute(scamper_route_t *route)
       route->cb(route);
       return 0;
     }
+
+  if(SCAMPER_ADDR_TYPE_IS_IPV6(route->dst) &&
+     scamper_rtsock_getroute6(route) == 0)
+    {
+      route->cb(route);
+      return 0;
+    }
+
 
   return -1;
 }

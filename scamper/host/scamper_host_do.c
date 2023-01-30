@@ -474,8 +474,9 @@ static int extract_mx(scamper_host_rr_t *rr, uint8_t *pktbuf, size_t pktlen,
   return 0;
 }
 
-static void do_host_read(const int fd, void *param)
+static void do_host_read(void * fd_, void *param)
 {
+  int fd = *((int *)fd_);
   scamper_task_t *task = NULL;
   scamper_host_t *host = NULL;
   host_state_t *state;

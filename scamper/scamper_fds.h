@@ -29,12 +29,14 @@
 typedef struct scamper_fd scamper_fd_t;
 
 /* when an event occurs, this is the format of the callback used */
-typedef void (*scamper_fd_cb_t)(const int fd, void *param);
+typedef void (*scamper_fd_cb_t)(void * fd, void *param);
 
 /* these functions allocate reference to a socket shared throughout scamper */
-scamper_fd_t *scamper_fd_icmp4(void *addr);
-scamper_fd_t *scamper_fd_icmp4_err(void *addr);
-scamper_fd_t *scamper_fd_icmp6(void *addr);
+scamper_fd_t *scamper_fd_pcap_icmp4(void *addr);
+scamper_fd_t *scamper_fd_pcap_icmp6(void *addr);
+scamper_fd_t *scamper_fd_probe_icmp4(void *addr);
+scamper_fd_t *scamper_fd_probe_icmp4_err(void *addr);
+scamper_fd_t *scamper_fd_probe_icmp6(void *addr);
 scamper_fd_t *scamper_fd_udp4(void *addr, uint16_t sport);
 scamper_fd_t *scamper_fd_udp6(void *addr, uint16_t sport);
 scamper_fd_t *scamper_fd_udp6_err(void *addr, uint16_t sport);
@@ -68,6 +70,8 @@ void scamper_fd_free(scamper_fd_t *fdn);
 /* get/set the fd associated with the structure */
 int scamper_fd_fd_get(const scamper_fd_t *fdn);
 int scamper_fd_fd_set(scamper_fd_t *fdn, int fd);
+
+void * scamper_fd_pcap_get(const scamper_fd_t *fdn);
 
 /* functions to temporarily unmonitor a fd, and then have it rejoin */
 void scamper_fd_read_pause(scamper_fd_t *fdn);

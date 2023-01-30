@@ -38,10 +38,11 @@
 #endif
 #include "internal.h"
 
-#if defined(HAVE_BPF) || defined(__linux__)
+#if defined(HAVE_BPF) || defined(__linux__)  || defined(_WIN32)
 #define HAVE_BPF_FILTER
 #endif
 
+#include <pcap.h>
 #include "scamper.h"
 #include "scamper_debug.h"
 #include "scamper_addr.h"
@@ -148,7 +149,6 @@ static int dl_parse_ip(scamper_dl_rec_t *dl, uint8_t *pktbuf, size_t pktlen)
       dl->dl_ip_ttl   = ip4->ip_ttl;
       dl->dl_ip_src   = (uint8_t *)&ip4->ip_src;
       dl->dl_ip_dst   = (uint8_t *)&ip4->ip_dst;
-
       dl->dl_flags   |= SCAMPER_DL_REC_FLAG_NET;
       dl->dl_net_type = SCAMPER_DL_REC_NET_TYPE_IP;
 
@@ -1002,138 +1002,121 @@ static int dl_bpf_filter(scamper_dl_t *node, struct bpf_insn *insns, int len)
   return 0;
 }
 
-#elif defined(__linux__)
+#elif defined(__linux__) || defined(_WIN32)
 
-static int dl_linux_open(const int ifindex)
+#if defined(_WIN32)
+
+#define DEVICE_NAME_SIZE MAX_ADAPTER_NAME_LENGTH + 4 + 12
+
+static int get_device_name(char *name, const int ifindex)
 {
-  struct sockaddr_ll sll;
-  int fd;
+    PIP_ADAPTER_INFO pAdapterInfo;
+    PIP_ADAPTER_INFO pAdapter = NULL;
+    DWORD dwRetVal = 0;
+    UINT i;
+    int ret = 0;
 
-  /* open the socket in non cooked mode for now */
-  if((fd = socket(PF_PACKET, SOCK_RAW, htons(ETH_P_ALL))) == -1)
-    {
-      printerror(__func__, "could not open PF_PACKET");
-      return -1;
+    /* variables used to print DHCP time info */
+    struct tm newtime;
+    char buffer[32];
+    errno_t error;
+
+    ULONG ulOutBufLen = sizeof(IP_ADAPTER_INFO);
+    pAdapterInfo = (IP_ADAPTER_INFO*)malloc(sizeof(IP_ADAPTER_INFO) * 42);
+    if (pAdapterInfo == NULL) {
+        printf("Error allocating memory needed to call GetAdaptersinfo\n");
+        return 1;
     }
 
-  /* scamper only wants packets on this interface */
-  memset(&sll, 0, sizeof(sll));
-  sll.sll_family   = AF_PACKET;
-  sll.sll_ifindex  = ifindex;
-  sll.sll_protocol = htons(ETH_P_ALL);
-  if(bind(fd, (struct sockaddr *)&sll, sizeof(sll)) == -1)
-    {
-      printerror(__func__, "could not bind to %d", ifindex);
-      close(fd);
-      return -1;
+    // Make an initial call to GetAdaptersInfo to get
+    // the necessary size into the ulOutBufLen variable
+    if (GetAdaptersInfo(pAdapterInfo, &ulOutBufLen) == ERROR_BUFFER_OVERFLOW) {
+        free(pAdapterInfo);
+        pAdapterInfo = (IP_ADAPTER_INFO*)malloc(ulOutBufLen);
+        if (pAdapterInfo == NULL) {
+            printf("Error allocating memory needed to call GetAdaptersinfo\n");
+            return 1;
+        }
     }
 
-  return fd;
+    GetAdaptersInfo(pAdapterInfo, &ulOutBufLen);
+    pAdapter = pAdapterInfo;
+    while (pAdapter) {
+        
+        if (pAdapter->Index == ifindex)
+        {
+            strcpy(name, "\\Device\\NPF_");
+            strcat(name, pAdapter->AdapterName);
+            goto cleanup;
+        }
+        pAdapter = pAdapter->Next;
+    }
+    ret = -1;
+
+cleanup:
+    if (pAdapterInfo != NULL) free(pAdapterInfo);
+    return ret;
+}
+#else
+
+#define DEVICE_NAME_SIZE IFNAMSIZ
+
+static int get_device_name(char* name, const int ifindex)
+{
+    if (if_indextoname(ifindex, name) == NULL)
+    {
+        printerror(__func__, "if_indextoname %u failed", ifindex);
+        return -1;
+    }
+    return 0;
+}
+#endif
+
+static pcap_t * dl_linux_open(const int ifindex)
+{
+  char errbuf[1024];
+  char ifname[DEVICE_NAME_SIZE];
+
+  pcap_t * pcap = NULL;
+
+  if (get_device_name(ifname, ifindex) == -1)
+  {
+      printerror(__func__, "get_device_name %u failed", ifindex);
+      return NULL;
+  }
+  pcap = pcap_open_live(ifname, BUFSIZ, 1, 1000, errbuf);
+
+  if (pcap == NULL) {
+      printerror(__func__, "%s", errbuf);
+      goto err;
+  }
+
+ #ifdef _WIN32
+   pcap_setmintocopy(pcap, 1);
+ #endif
+
+  return pcap;
+
+err:
+   if(pcap != NULL) pcap_close(pcap);
+   return NULL;
+
 }
 
 static int dl_linux_node_init(const scamper_fd_t *fdn, scamper_dl_t *node)
 {
-  struct ifreq ifreq;
-  char ifname[IFNAMSIZ];
-  int fd, ifindex;
-
-  if(scamper_fd_ifindex(fdn, &ifindex) != 0)
-    {
-      goto err;
-    }
-
-  if((fd = scamper_fd_fd_get(fdn)) < 0)
-    {
-      goto err;
-    }
-
-  if(if_indextoname(ifindex, ifname) == NULL)
-    {
-      printerror(__func__, "if_indextoname %d failed", ifindex);
-      goto err;
-    }
-
-  /* find out what type of datalink the interface has */
-  memcpy(ifreq.ifr_name, ifname, sizeof(ifreq.ifr_name));
-  if(ioctl(fd, SIOCGIFHWADDR, &ifreq) == -1)
-    {
-      printerror(__func__, "%s SIOCGIFHWADDR failed", ifname);
-      goto err;
-    }
-
-  node->type = ifreq.ifr_hwaddr.sa_family;
-
-  /* scamper can only deal with ethernet datalinks at this time */
-  switch(node->type)
-    {
-    case ARPHRD_ETHER:
-      node->dlt_cb = dlt_en10mb_cb;
-      node->tx_type = SCAMPER_DL_TX_ETHERNET;
-      break;
-
-    case ARPHRD_LOOPBACK:
-      node->dlt_cb = dlt_en10mb_cb;
-      node->tx_type = SCAMPER_DL_TX_ETHLOOP;
-      break;
-
-#if defined(ARPHRD_SIT)
-    case ARPHRD_SIT:
-      node->dlt_cb = dlt_raw_cb;
-      node->tx_type = SCAMPER_DL_TX_RAW;
-      break;
-#endif
-
-#if defined(ARPHRD_IEEE1394)
-    case ARPHRD_IEEE1394:
-      node->dlt_cb = dlt_firewire_cb;
-      node->tx_type = SCAMPER_DL_TX_UNSUPPORTED;
-      break;
-#endif
-
-#if defined(ARPHRD_VOID)
-    case ARPHRD_VOID:
-      node->dlt_cb = dlt_raw_cb;
-      node->tx_type = SCAMPER_DL_TX_UNSUPPORTED;
-      break;
-#endif
-
-    default:
-      scamper_debug(__func__, "%s unhandled datalink %d", ifname, node->type);
-      goto err;
-    }
-
+  node->dlt_cb = dlt_en10mb_cb;
+  node->tx_type = SCAMPER_DL_TX_ETHERNET;
   return 0;
-
- err:
-  return -1;
 }
 
-static int dl_linux_read(const int fd, scamper_dl_t *node)
+static int dl_linux_read(pcap_t * pcap, scamper_dl_t *node)
 {
-  scamper_dl_rec_t   dl;
-  ssize_t            len;
-  struct sockaddr_ll from;
-  socklen_t          fromlen;
+  struct pcap_pkthdr    header;
+  scamper_dl_rec_t      dl;
+  const u_char          *packet;
 
-  fromlen = sizeof(from);
-  while((len = recvfrom(fd, readbuf, readbuf_len, MSG_TRUNC,
-			(struct sockaddr *)&from, &fromlen)) == -1)
-    {
-      if(errno == EINTR)
-	{
-	  fromlen = sizeof(from);
-	  continue;
-	}
-      if(errno == EAGAIN)
-	{
-	  return 0;
-	}
-      printerror(__func__, "read %d bytes from fd %d failed", readbuf_len, fd);
-      return -1;
-    }
-
-  /* sanity check the packet length */
-  if(len > readbuf_len) len = readbuf_len;
+  packet = pcap_next(pcap, &header);
 
   /* reset the datalink record */
   memset(&dl, 0, sizeof(dl));
@@ -1145,20 +1128,9 @@ static int dl_linux_read(const int fd, scamper_dl_t *node)
     }
 
   /* if the packet passes the filter, we need to get the time it was rx'd */
-  if(node->dlt_cb(&dl, readbuf, len))
-    {
-      /* scamper treats the failure of this ioctl as non-fatal */
-      if(ioctl(fd, SIOCGSTAMP, &dl.dl_tv) == 0)
-	{
-	  dl.dl_flags |= SCAMPER_DL_REC_FLAG_TIMESTAMP;
-	}
-      else
-	{
-	  printerror(__func__, "could not SIOCGSTAMP on fd %d", fd);
-	}
-
+  if(node->dlt_cb(&dl, packet,  header.len)) {
       scamper_task_handledl(&dl);
-    }
+  }
 
   return 0;
 }
@@ -1166,63 +1138,24 @@ static int dl_linux_read(const int fd, scamper_dl_t *node)
 static int dl_linux_tx(const scamper_dl_t *node,
 		       const uint8_t *pkt, const size_t len)
 {
-  struct sockaddr_ll sll;
-  struct sockaddr *sa = (struct sockaddr *)&sll;
-  ssize_t wb;
-  int fd, ifindex;
-
-  if(scamper_fd_ifindex(node->fdn, &ifindex) != 0)
-    {
-      return -1;
-    }
-
-  memset(&sll, 0, sizeof(sll));
-  sll.sll_family = AF_PACKET;
-  sll.sll_ifindex = ifindex;
-
-  if(node->type == ARPHRD_SIT)
-    sll.sll_protocol = htons(ETH_P_IPV6);
-  else
-    sll.sll_protocol = htons(ETH_P_ALL);
-
-  fd = scamper_fd_fd_get(node->fdn);
-
-  if((wb = sendto(fd, pkt, len, 0, sa, sizeof(sll))) < (ssize_t)len)
-    {
-      if(wb == -1)
-	printerror(__func__, "%d bytes failed", len);
-      else
-	scamper_debug(__func__, "%d bytes sent of %d total", wb, len);
-      return -1;
-    }
+  pcap_t * pcap = scamper_fd_pcap_get(node->fdn);
+  const int i = pcap_sendpacket(pcap, pkt, len);
 
   return 0;
 }
 
 static int dl_linux_filter(scamper_dl_t *node,
-			   struct sock_filter *insns, int len)
+			   struct bpf_insn *insns, int len)
 {
-  struct sock_fprog prog;
-  int i;
+  struct bpf_program filter;
 
-  for(i=0; i<len; i++)
-    {
-      if(insns[i].code == (BPF_RET+BPF_K) && insns[i].k > 0)
-	{
-	  insns[i].k = 65535;
-	}
-    }
+  filter.bf_len = len;
+  filter.bf_insns = insns;
 
-  prog.len    = len;
-  prog.filter = insns;
+  pcap_t * pcap = scamper_fd_pcap_get(node->fdn);
 
-  if(setsockopt(scamper_fd_fd_get(node->fdn), SOL_SOCKET, SO_ATTACH_FILTER,
-		(caddr_t)&prog, sizeof(prog)) == -1)
-    {
-      printerror(__func__, "SO_ATTACH_FILTER failed");
+  if (pcap_setfilter(pcap, &filter) != 0)
       return -1;
-    }
-
   return 0;
 }
 
@@ -1557,11 +1490,7 @@ static int dl_dlpi_tx(const scamper_dl_t *node,
 
 #if defined(HAVE_BPF_FILTER)
 
-#if defined(HAVE_BPF)
 static void bpf_stmt(struct bpf_insn *insn, uint16_t code, uint32_t k)
-#else
-static void bpf_stmt(struct sock_filter *insn, uint16_t code, uint32_t k)
-#endif
 {
   insn->code = code;
   insn->jt   = 0;
@@ -1572,19 +1501,11 @@ static void bpf_stmt(struct sock_filter *insn, uint16_t code, uint32_t k)
 
 static int dl_filter(scamper_dl_t *node)
 {
-#if defined(HAVE_BPF)
   struct bpf_insn insns[1];
-#else
-  struct sock_filter insns[1];
-#endif
 
   bpf_stmt(&insns[0], BPF_RET+BPF_K, 65535);
 
-#if defined(HAVE_BPF)
-  if(dl_bpf_filter(node, insns, 1) == -1)
-#elif defined(__linux__)
   if(dl_linux_filter(node, insns, 1) == -1)
-#endif
     {
       return -1;
     }
@@ -1941,13 +1862,13 @@ void scamper_dl_rec_icmp_print(const scamper_dl_rec_t *dl)
  * this function is called by scamper_fds when a BPF fd fires as being
  * available to read from.
  */
-void scamper_dl_read_cb(const int fd, void *param)
+void scamper_dl_read_cb(void * fd, void *param)
 {
   assert(param != NULL);
 
 #if defined(HAVE_BPF)
   dl_bpf_read(fd, (scamper_dl_t *)param);
-#elif defined(__linux__)
+#elif defined(__linux__)  || defined(_WIN32)
   dl_linux_read(fd, (scamper_dl_t *)param);
 #elif defined(HAVE_DLPI)
   dl_dlpi_read(fd, (scamper_dl_t *)param);
@@ -1983,7 +1904,7 @@ scamper_dl_t *scamper_dl_state_alloc(scamper_fd_t *fdn)
 
 #if defined(HAVE_BPF)
   if(dl_bpf_node_init(fdn, dl) == -1)
-#elif defined(__linux__)
+#elif defined(__linux__)  || defined(_WIN32)
   if(dl_linux_node_init(fdn, dl) == -1)
 #elif defined(HAVE_DLPI)
   if(dl_dlpi_node_init(fdn, dl) == -1)
@@ -2008,7 +1929,7 @@ int scamper_dl_tx(const scamper_dl_t *node,
 {
 #if defined(HAVE_BPF)
   if(dl_bpf_tx(node, pkt, len) == -1)
-#elif defined(__linux__)
+#elif defined(__linux__)  || defined(_WIN32)
   if(dl_linux_tx(node, pkt, len) == -1)
 #elif defined(HAVE_DLPI)
   if(dl_dlpi_tx(node, pkt, len) == -1)
@@ -2025,10 +1946,10 @@ int scamper_dl_tx_type(scamper_dl_t *dl)
   return dl->tx_type;
 }
 
-void scamper_dl_close(int fd)
+void scamper_dl_close(pcap_t * fd)
 {
 #ifndef _WIN32
-  close(fd);
+  //close(fd);
 #endif
   return;
 }
@@ -2039,16 +1960,14 @@ void scamper_dl_close(int fd)
  * routine to actually open a datalink.  called by scamper_dl_open below,
  * as well as by the privsep code.
  */
-int scamper_dl_open_fd(const int ifindex)
+pcap_t * scamper_dl_open_fd(const int ifindex)
 {
 #if defined(HAVE_BPF)
   return dl_bpf_open(ifindex);
-#elif defined(__linux__)
+#elif defined(__linux__) || defined(_WIN32)
   return dl_linux_open(ifindex);
 #elif defined(HAVE_DLPI)
   return dl_dlpi_open(ifindex);
-#elif defined(_WIN32)
-  return -1;
 #endif
 }
 
@@ -2058,18 +1977,18 @@ int scamper_dl_open_fd(const int ifindex)
  * return a file descriptor for the datalink for the interface specified.
  * use privilege separation if required, otherwise open fd directly.
  */
-int scamper_dl_open(const int ifindex)
+pcap_t * scamper_dl_open(const int ifindex)
 {
-  int fd;
+  pcap_t * fd;
 
 #if defined(WITHOUT_PRIVSEP)
-  if((fd = scamper_dl_open_fd(ifindex)) == -1)
+  if((fd = scamper_dl_open_fd(ifindex)) == NULL)
 #else
   if((fd = scamper_privsep_open_datalink(ifindex)) == -1)
 #endif
     {
       scamper_debug(__func__, "could not open ifindex %d", ifindex);
-      return -1;
+      return NULL;
     }
 
   return fd;
@@ -2093,7 +2012,7 @@ int scamper_dl_init()
     {
       return -1;
     }
-#elif defined(__linux__)
+#elif defined(__linux__) || defined(_WIN32)
   readbuf_len = 128;
   if((readbuf = malloc_zero(readbuf_len)) == NULL)
     {

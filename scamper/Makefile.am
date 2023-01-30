@@ -64,6 +64,8 @@ scamper_SOURCES = \
 	scamper_debug.c \
 	scamper_udp4.c \
 	scamper_udp6.c \
+	scamper_probe_icmp4.c \
+	scamper_probe_icmp6.c \
 	scamper_icmp4.c \
 	scamper_icmp6.c \
 	scamper_icmp_resp.c \

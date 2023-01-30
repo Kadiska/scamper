@@ -146,7 +146,6 @@ void scamper_icmp_resp_print(const scamper_icmp_resp_t *ir)
   else /* if(ir->ir_af == AF_INET6) */
     {
       addr_tostr(AF_INET6, &ir->ir_ip_src.v6, addr, sizeof(addr));
-
       snprintf(ip, sizeof(ip), "from %s size %d hlim %d", addr,
 	       ir->ir_ip_size, ir->ir_ip_hlim);
 
@@ -372,17 +371,20 @@ void scamper_icmp_resp_handle(scamper_icmp_resp_t *resp)
      SCAMPER_ICMP_RESP_IS_PARAMPROB(resp))
     {
       /* the probe signature is embedded in the response */
-      if(!SCAMPER_ICMP_RESP_INNER_IS_SET(resp))
-	return;
-      if(scamper_icmp_resp_inner_dst(resp, &addr) != 0)
-	return;
+      if(!SCAMPER_ICMP_RESP_INNER_IS_SET(resp)) {
+	    return;
+      }
+      if(scamper_icmp_resp_inner_dst(resp, &addr) != 0) {
+	    return;
+      }
     }
   else if(SCAMPER_ICMP_RESP_IS_ECHO_REPLY(resp) ||
 	  SCAMPER_ICMP_RESP_IS_TIME_REPLY(resp))
     {
       /* the probe signature is an ICMP echo/ts request */
-      if(scamper_icmp_resp_src(resp, &addr) != 0)
-	return;
+      if(scamper_icmp_resp_src(resp, &addr) != 0) { 
+	    return;
+      }
     }
   else
     {
@@ -392,7 +394,8 @@ void scamper_icmp_resp_handle(scamper_icmp_resp_t *resp)
   memset(&sig, 0, sizeof(sig));
   sig.sig_type = SCAMPER_TASK_SIG_TYPE_TX_IP;
   sig.sig_tx_ip_dst = &addr;
-  if((task = scamper_task_find(&sig)) != NULL)
+  if((task = scamper_task_find(&sig)) != NULL) {
     scamper_task_handleicmp(task, resp);
+  }
   return;
 }

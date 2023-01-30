@@ -48,8 +48,8 @@
 #include "scamper_getsrc.h"
 #include "scamper_udp4.h"
 #include "scamper_udp6.h"
-#include "scamper_icmp4.h"
-#include "scamper_icmp6.h"
+#include "scamper_probe_icmp4.h"
+#include "scamper_probe_icmp6.h"
 #include "scamper_queue.h"
 #include "scamper_file.h"
 #include "scamper_options.h"
@@ -2245,7 +2245,7 @@ static void do_dealias_probe(scamper_task_t *task)
       /* hack to get the icmp csum to be a particular value, and be valid */
       u16 = htons(def->un.icmp.csum);
       memcpy(probe.pr_data, &u16, 2);
-      u16 = scamper_icmp4_cksum(&probe);
+      u16 = scamper_probe_icmp4_cksum(&probe);
       memcpy(probe.pr_data, &u16, 2);
     }
   else if(SCAMPER_DEALIAS_PROBEDEF_PROTO_IS_TCP(def))

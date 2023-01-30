@@ -54,6 +54,8 @@
 #include "scamper_options.h"
 #include "scamper_icmp4.h"
 #include "scamper_icmp6.h"
+#include "scamper_probe_icmp4.h"
+#include "scamper_probe_icmp6.h"
 #include "scamper_tcp4.h"
 #include "scamper_udp4.h"
 #include "scamper_udp6.h"
@@ -3848,13 +3850,13 @@ static int trace_state_alloc(scamper_task_t *task)
       if(SCAMPER_TRACE_TYPE_IS_ICMP(trace) &&
 	 SCAMPER_ADDR_TYPE_IS_IPV4(trace->dst))
 	{
-	  state->icmp = scamper_fd_icmp4_err(trace->src->addr);
-	  state->probe = scamper_fd_icmp4_err(trace->src->addr);
+	  //state->icmp = scamper_fd_probe_icmp4_err(trace->src->addr);
+	  state->probe = scamper_fd_probe_icmp4_err(trace->src->addr);
 	}
       else if(SCAMPER_TRACE_TYPE_IS_UDP(trace) &&
 	      SCAMPER_ADDR_TYPE_IS_IPV6(trace->dst))
 	{
-	  state->icmp = scamper_fd_udp6_err(trace->src->addr, trace->sport);
+	  //state->icmp = scamper_fd_udp6_err(trace->src->addr, trace->sport);
 	  state->probe = scamper_fd_udp6_err(trace->src->addr, trace->sport);
 	}
       if(state->icmp == NULL || state->probe == NULL)
@@ -3862,10 +3864,12 @@ static int trace_state_alloc(scamper_task_t *task)
     }
   else
     {
-      if(trace->dst->type == SCAMPER_ADDR_TYPE_IPV4)
-	state->icmp = scamper_fd_icmp4(trace->src->addr);
-      else if(trace->dst->type == SCAMPER_ADDR_TYPE_IPV6)
-	state->icmp = scamper_fd_icmp6(trace->src->addr);
+      if(trace->dst->type == SCAMPER_ADDR_TYPE_IPV4) {
+          state->icmp = scamper_fd_pcap_icmp4(trace->src->addr);
+      }
+      else if(trace->dst->type == SCAMPER_ADDR_TYPE_IPV6) {
+          state->icmp = scamper_fd_pcap_icmp6(trace->src->addr);
+      }
       if(state->icmp == NULL)
 	goto err;
 
@@ -3886,9 +3890,9 @@ static int trace_state_alloc(scamper_task_t *task)
       else if(SCAMPER_TRACE_TYPE_IS_ICMP(trace))
 	{
 	  if(trace->dst->type == SCAMPER_ADDR_TYPE_IPV4)
-	    state->probe = scamper_fd_icmp4(trace->src->addr);
+	    state->probe = scamper_fd_probe_icmp4(trace->src->addr);
 	  else
-	    state->probe = scamper_fd_icmp6(trace->src->addr);
+	    state->probe = scamper_fd_probe_icmp6(trace->src->addr);
 	}
       else if(SCAMPER_TRACE_TYPE_IS_UDP(trace))
 	{
@@ -4211,9 +4215,9 @@ static void do_trace_probe(scamper_task_t *task)
 	  u16 = htons(trace->dport);
 	  memcpy(probe.pr_data, &u16, 2);
 	  if(trace->dst->type == SCAMPER_ADDR_TYPE_IPV4)
-	    u16 = scamper_icmp4_cksum(&probe);
+	    u16 = scamper_probe_icmp4_cksum(&probe);
 	  else
-	    u16 = scamper_icmp6_cksum(&probe);
+	    u16 = scamper_probe_icmp6_cksum(&probe);
 	  memcpy(probe.pr_data, &u16, 2);
 	}
     }

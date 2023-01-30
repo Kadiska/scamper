@@ -26,7 +26,7 @@
 
 #ifndef __SCAMPER_DL_H
 #define __SCAMPER_DL_H
-
+#include <pcap/pcap.h>
 /*
  * these flags are set in scamper_dl_rec.dl_flags
  *
@@ -521,9 +521,9 @@ int scamper_dl_tx_type(scamper_dl_t *);
  * scamper_dl_open:    open datalink interface, use privsep if required
  * scamper_dl_open_fd: open datalink interface. for the benefit of privsep code
  */
-int scamper_dl_open(const int ifindex);
-int scamper_dl_open_fd(const int ifindex);
-void scamper_dl_close(int fd);
+pcap_t * scamper_dl_open(const int ifindex);
+pcap_t * scamper_dl_open_fd(const int ifindex);
+void scamper_dl_close(pcap_t * fd);
 
 /*
  * scamper_dl_state_alloc: allocate state to be held with fd
@@ -537,7 +537,7 @@ void scamper_dl_state_free(scamper_dl_t *dl);
 /*
  * scamper_dl_read_cb: callback for read events
  */
-void scamper_dl_read_cb(const int fd, void *param);
+void scamper_dl_read_cb(void * fd, void *param);
 
 /*
  * scamper_dl_tx:

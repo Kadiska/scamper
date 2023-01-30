@@ -16,7 +16,9 @@ please use CVS snapshot name (such as "cvs-20211212a") as commit name in, to pro
 
 "kadiska" branch, on the other hand will be reserved to kadiska changes made.
 
-## Makefile/Autoconf Generation
+## Linux 
+
+1- Makefile/Autoconf Generation
 
 **Prerequist** : make sure you have installed automake (`sudo apt install automake`)
 
@@ -34,10 +36,14 @@ automake --add-missing # create Makefile.in from am files
 ./configure # create Makefile
 ```
 
-## Compilation
+2- Compilation
 ```bash
 make
 ```
+
+## Windows
+
+open `windows/vs2023.sln` visual studio project
 
 ## Usage example
 

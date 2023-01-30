@@ -33,7 +33,7 @@ autoheader # create config.h.in
 autoconf # create configure script
 automake --add-missing # create Makefile.in from am files
 
-./configure # create Makefile
+LIBS=-lpcap ./configure --disable-privsep --enable-debug # create Makefile
 ```
 
 2- Compilation
@@ -43,7 +43,13 @@ make
 
 ## Windows
 
-open `windows/vs2023.sln` visual studio project
+Prerequisites:
+- visual studio 2022 (https://visualstudio.microsoft.com/fr/vs/community/)
+- npcap (https://npcap.com/#download)
+
+open `windows\vs2022.sln` visual studio 2022 project
+
+After compiling the project, move the DLLs `Packet.dll` and `wpcap.dll` from npcap (_located on C:\Windows\System32\Npcap with the default installation_) closed to compiled scamper.exe
 
 ## Usage example
 

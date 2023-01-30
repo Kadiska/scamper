@@ -128,10 +128,12 @@
   </ItemDefinitionGroup>
   <ItemDefinitionGroup>
     <ClCompile>
-      <AdditionalIncludeDirectories>$(ProjectDir);$(ProjectDir)..\;$(ProjectDir)..\scamper;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir);$(ProjectDir)..\;$(ProjectDir)..\scamper;$(ProjectDir)npcap-sdk-1.13\Include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
     </ClCompile>
     <Link>
+      <AdditionalDependencies Condition="'$(Platform)'=='x64'">$(ProjectDir)npcap-sdk-1.13\Lib\x64\Packet.lib;$(ProjectDir)npcap-sdk-1.13\Lib\x64\wpcap.lib</AdditionalDependencies>
+      <AdditionalDependencies Condition="'$(Platform)'=='x86'">$(ProjectDir)npcap-sdk-1.13\Lib\Packet.lib;$(ProjectDir)npcap-sdk-1.13\Lib\wpcap.lib</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>

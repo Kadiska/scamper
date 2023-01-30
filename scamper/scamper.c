@@ -47,8 +47,8 @@
 #include "scamper_queue.h"
 #include "scamper_getsrc.h"
 #include "scamper_addr2mac.h"
-#include "scamper_icmp4.h"
-#include "scamper_icmp6.h"
+#include "scamper_probe_icmp4.h"
+#include "scamper_probe_icmp6.h"
 #include "scamper_udp4.h"
 #include "scamper_udp6.h"
 #include "scamper_tcp4.h"
@@ -1490,8 +1490,9 @@ static int scamper(int argc, char *argv[])
 	}
 
       /* listen until it is time to send the next probe */
-      if(scamper_fds_poll(timeout_ptr) == -1)
+      if(scamper_fds_poll(timeout_ptr) == -1) {
 	return -1;
+      }
 
       /* get the current time */
       gettimeofday_wrap(&tv);
@@ -1600,8 +1601,8 @@ static void cleanup(void)
   scamper_getsrc_cleanup();
   scamper_rtsock_cleanup();
 
-  scamper_icmp4_cleanup();
-  scamper_icmp6_cleanup();
+  scamper_probe_icmp4_cleanup();
+  scamper_probe_icmp6_cleanup();
   scamper_udp4_cleanup();
   scamper_tcp4_cleanup();
 

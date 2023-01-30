@@ -3643,8 +3643,9 @@ static int remote_read_sock(control_remote_t *rm)
  * traffic.
  *
  */
-static void remote_read(const int fd, void *param)
+static void remote_read(void * fd_, void *param)
 {
+  int fd = *((int *)fd_);
   control_remote_t *rm = param;
   struct timeval tv;
   int rc;
@@ -3698,8 +3699,9 @@ static int client_channel_send(client_t *client, void *buf, size_t len)
   return 0;  
 }
 
-static void remote_write(const int fd, void *param)
+static void remote_write(void * fd_, void *param)
 {
+  int fd = *((int *)fd_);
   control_remote_t *rm = param;
   struct timeval tv;
   dlist_node_t *dn;
@@ -3963,8 +3965,9 @@ static int remote_reconnect(void *param)
   return remote_connect(rm);
 }
 
-static void control_accept(const int fd, void *param)
+static void control_accept(void * fd_, void *param)
 {
+  int fd = *((int *)fd_);
   struct sockaddr_storage ss;
   socklen_t socklen;
   client_t *c = NULL;

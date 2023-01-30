@@ -39,8 +39,8 @@
 #include "scamper_probe.h"
 #include "scamper_udp4.h"
 #include "scamper_udp6.h"
-#include "scamper_icmp4.h"
-#include "scamper_icmp6.h"
+#include "scamper_probe_icmp4.h"
+#include "scamper_probe_icmp6.h"
 #include "scamper_tcp4.h"
 #include "scamper_tcp6.h"
 #include "scamper_ip4.h"
@@ -429,7 +429,7 @@ static probe_state_t *probe_state_alloc(scamper_probe_t *pr)
       else if(pr->pr_ip_proto == IPPROTO_UDP)
 	build_func = scamper_udp4_build;
       else if(pr->pr_ip_proto == IPPROTO_ICMP)
-	build_func = scamper_icmp4_build;
+	build_func = scamper_probe_icmp4_build;
       else if(pr->pr_ip_proto == IPPROTO_TCP)
 	build_func = scamper_tcp4_build;
     }
@@ -440,7 +440,7 @@ static probe_state_t *probe_state_alloc(scamper_probe_t *pr)
       if(pr->pr_ip_proto == IPPROTO_UDP)
 	build_func = scamper_udp6_build;
       else if(pr->pr_ip_proto == IPPROTO_ICMPV6)
-	build_func = scamper_icmp6_build;
+	build_func = scamper_probe_icmp6_build;
       else if(pr->pr_ip_proto == IPPROTO_TCP)
 	build_func = scamper_tcp6_build;
     }
@@ -760,7 +760,7 @@ static int probe_task_ipv4(scamper_probe_t *pr, scamper_task_t *task,
   else if(pr->pr_ip_proto == IPPROTO_ICMP)
     {
       pr->pr_fd = scamper_fd_fd_get(icmp);
-      if(scamper_icmp4_probe(pr) != 0)
+      if(scamper_probe_icmp4_probe(pr) != 0)
 	{
 	  pr->pr_errno = errno;
 	  return -1;
@@ -799,7 +799,7 @@ static int probe_task_ipv6(scamper_probe_t *pr, scamper_task_t *task,
   else if(pr->pr_ip_proto == IPPROTO_ICMPV6)
     {
       pr->pr_fd = scamper_fd_fd_get(icmp);
-      if(scamper_icmp6_probe(pr) != 0)
+      if(scamper_probe_icmp6_probe(pr) != 0)
 	{
 	  pr->pr_errno = errno;
 	  return -1;
@@ -927,8 +927,8 @@ int scamper_probe(scamper_probe_t *probe)
 	}
       else if(probe->pr_ip_proto == IPPROTO_ICMP)
 	{
-	  send_func = scamper_icmp4_probe;
-	  build_func = scamper_icmp4_build;
+	  send_func = scamper_probe_icmp4_probe;
+	  build_func = scamper_probe_icmp4_build;
 	}
     }
   else if(probe->pr_ip_dst->type == SCAMPER_ADDR_TYPE_IPV6)
@@ -948,8 +948,8 @@ int scamper_probe(scamper_probe_t *probe)
 	}
       else if(probe->pr_ip_proto == IPPROTO_ICMPV6)
 	{
-	  send_func = scamper_icmp6_probe;
-	  build_func = scamper_icmp6_build;
+	  send_func = scamper_probe_icmp6_probe;
+	  build_func = scamper_probe_icmp6_build;
 	}
     }
 

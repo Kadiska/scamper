@@ -104,6 +104,8 @@
     <ClCompile Include="..\scamper\host\scamper_host.c" />
     <ClCompile Include="..\scamper\host\scamper_host_warts.c" />
     <ClCompile Include="..\scamper\host\scamper_host_do.c" />
+    <ClCompile Include="..\scamper\scamper_probe_icmp4.c" />
+    <ClCompile Include="..\scamper\scamper_probe_icmp6.c" />
   </ItemGroup>
 
 </Project>

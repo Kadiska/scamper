@@ -204,8 +204,9 @@ int scamper_udp6_probe(scamper_probe_t *probe)
 }
 
 #if defined(IPV6_RECVERR)
-static int scamper_udp6_read_err(int fd, scamper_icmp_resp_t *resp)
+static int scamper_udp6_read_err(void * fd_, scamper_icmp_resp_t *resp)
 {
+  int fd = *((int *)fd_);
   struct sock_extended_err *ee = NULL;
   struct sockaddr_in6 from, *sin6;  
   struct cmsghdr *cm;
@@ -292,12 +293,13 @@ static int scamper_udp6_read_err(int fd, scamper_icmp_resp_t *resp)
 
 #endif
 
-void scamper_udp6_read_err_cb(int fd, void *param)
+void scamper_udp6_read_err_cb(void * fd_, void *param)
 {
+  int fd = *((int *)fd_);
 #if defined(IPV6_RECVERR)
   scamper_icmp_resp_t ir;
   memset(&ir, 0, sizeof(ir));
-  if(scamper_udp6_read_err(fd, &ir) == 0 &&
+  if(scamper_udp6_read_err(&fd, &ir) == 0 &&
      scamper_fd_sport((const scamper_fd_t *)param,&ir.ir_inner_udp_sport) == 0)
     scamper_icmp_resp_handle(&ir);
   scamper_icmp_resp_clean(&ir);

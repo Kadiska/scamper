@@ -876,13 +876,13 @@ static scamper_fd_t *task_fd(scamper_task_t *t, scamper_fd_t *fd)
 
 scamper_fd_t *scamper_task_fd_icmp4(scamper_task_t *task, void *addr)
 {
-  scamper_fd_t *fd = scamper_fd_icmp4(addr);
+  scamper_fd_t *fd = scamper_fd_probe_icmp4(addr);
   return task_fd(task, fd);
 }
 
 scamper_fd_t *scamper_task_fd_icmp6(scamper_task_t *task, void *addr)
 {
-  scamper_fd_t *fd = scamper_fd_icmp6(addr);
+  scamper_fd_t *fd = scamper_fd_probe_icmp6(addr);
   return task_fd(task, fd);
 }
 

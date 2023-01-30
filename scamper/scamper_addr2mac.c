@@ -566,53 +566,35 @@ static int addr2mac_init_bsd(void)
 #endif
 
 #ifdef _WIN32
-static int GetIpNetTable_wrap(MIB_IPNETTABLE **table, ULONG *size)
-{
-  int rc;
-
-  *table = NULL;
-  *size  = 0;
-
-  for(;;)
-    {
-      if(*size > 0 && (*table = malloc_zero(*size)) == NULL)
-	return -1;
-
-      if((rc = GetIpNetTable(*table, size, FALSE)) == NO_ERROR)
-	return 0;
-
-      free(*table);
-      *table = NULL;
-
-      if(rc != ERROR_INSUFFICIENT_BUFFER)
-	break;
-    }
-
-  return -1;
-}
 
 static int addr2mac_init_win32()
 {
-  struct timeval  tv;
-  MIB_IPNETTABLE *table;
-  ULONG           size;
-  DWORD           dw;
-  int             iptype;
+  struct timeval    tv;
+  PMIB_IPNET_TABLE2 table = NULL;
+  ULONG             size;
+  DWORD             dw;
 
   gettimeofday_wrap(&tv);
   tv.tv_sec += 60;
 
-  iptype = SCAMPER_ADDR_TYPE_IPV4;
-  if(GetIpNetTable_wrap(&table, &size) == 0 && table != NULL)
-    {
-      for(dw=0; dw<table->dwNumEntries; dw++)
+  if (GetIpNetTable2(AF_UNSPEC, &table) == 0)
+  {
+      for(dw=0; dw<table->NumEntries; dw++)
 	{
-	  addr2mac_add(table->table[dw].dwIndex, iptype,
-		       &table->table[dw].dwAddr,
-		       table->table[dw].bPhysAddr, tv.tv_sec);
+          if (table->Table[dw].Address.si_family == AF_INET) {
+              addr2mac_add(table->Table[dw].InterfaceIndex, SCAMPER_ADDR_TYPE_IPV4,
+                  &(table->Table[dw].Address.Ipv4.sin_addr.s_addr),
+                  table->Table[dw].PhysicalAddress, tv.tv_sec);
+          }
+          else if (table->Table[dw].Address.si_family == AF_INET6) {
+              addr2mac_add(table->Table[dw].InterfaceIndex, SCAMPER_ADDR_TYPE_IPV6,
+                  &(table->Table[dw].Address.Ipv6.sin6_addr),
+                  table->Table[dw].PhysicalAddress, tv.tv_sec);
+          }
+
 	}
-      free(table);
-    }
+      FreeMibTable(table);
+  }
 
   return 0;
 }

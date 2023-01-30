@@ -1,7 +1,7 @@
 /*
- * scamper_icmp4.h
+ * scamper_probe_icmp4.h
  *
- * $Id: scamper_icmp4.h,v 1.22 2020/04/27 07:32:21 mjl Exp $
+ * $Id: scamper_probe_icmp4.h,v 1.22 2020/04/27 07:32:21 mjl Exp $
  *
  * Copyright (C) 2003-2006 Matthew Luckie
  * Copyright (C) 2006-2009 The University of Waikato
@@ -23,28 +23,27 @@
  *
  */
 
-#ifndef __SCAMPER_ICMP4_H
-#define __SCAMPER_ICMP4_H
+#ifndef __SCAMPER_probe_icmp4_H
+#define __SCAMPER_probe_icmp4_H
 
-#include <pcap.h>
-#include "scamper_pcap.h"
+int scamper_probe_icmp4_open(const void *addr);
+int scamper_probe_icmp4_open_fd(void);
+int scamper_probe_icmp4_open_err(const void *addr);
+void scamper_probe_icmp4_close(int fd);
 
-pcap_t * scamper_pcap_icmp4_open(const void *addr);
-pcap_t * scamper_pcap_icmp4_open_fd(void);
-void scamper_pcap_icmp4_close(pcap_t * pcap);
-
-void scamper_pcap_icmp4_cleanup(void);
-void scamper_pcap_icmp4_read_cb(scamper_pcap_t * pcap, void *param);
+void scamper_probe_icmp4_cleanup(void);
+void scamper_probe_icmp4_read_cb(void * fd, void *param);
+void scamper_probe_icmp4_read_err_cb(void * fd, void *param);
 
 #ifdef __SCAMPER_PROBE_H
-int scamper_pcap_icmp4_probe(scamper_probe_t *probe);
-int scamper_pcap_icmp4_build(scamper_probe_t *probe, uint8_t *buf, size_t *len);
-uint16_t scamper_pcap_icmp4_cksum(scamper_probe_t *probe);
+int scamper_probe_icmp4_probe(scamper_probe_t *probe);
+int scamper_probe_icmp4_build(scamper_probe_t *probe, uint8_t *buf, size_t *len);
+uint16_t scamper_probe_icmp4_cksum(scamper_probe_t *probe);
 #endif
 
 #ifdef __SCAMPER_ICMP_RESP_H
-int scamper_pcap_icmp4_recv(scamper_pcap_t * pcap, scamper_icmp_resp_t *resp);
-int scamper_pcap_icmp4_recv_user(int fd, scamper_icmp_resp_t *resp);
+int scamper_probe_icmp4_recv(int fd, scamper_icmp_resp_t *resp);
+int scamper_probe_icmp4_recv_user(int fd, scamper_icmp_resp_t *resp);
 #endif
 
-#endif /* __SCAMPER_ICMP4_H */
+#endif /* __SCAMPER_probe_icmp4_H */

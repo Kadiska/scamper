@@ -34,6 +34,8 @@
 #include "scamper_debug.h"
 #include "scamper_icmp4.h"
 #include "scamper_icmp6.h"
+#include "scamper_probe_icmp4.h"
+#include "scamper_probe_icmp6.h"
 #include "scamper_udp4.h"
 #include "scamper_udp6.h"
 #include "scamper_tcp4.h"
@@ -43,6 +45,7 @@
 #ifndef _WIN32
 #include "scamper_rtsock.h"
 #endif
+#include "scamper_pcap.h"
 #include "utils.h"
 #include "mjl_list.h"
 #include "mjl_splaytree.h"
@@ -71,6 +74,10 @@ typedef struct scamper_fd_poll
 struct scamper_fd
 {
   int               fd;           /* the file descriptor being polled */
+#ifdef _WIN32
+  HANDLE            read_event;
+  HANDLE            write_event;
+#endif
   scamper_fd_t     *raw;          /* if udp4, the raw udp socket */
   int               type;         /* the type of the file descriptor */
   int               refcnt;       /* number of references to this structure */
@@ -85,6 +92,12 @@ struct scamper_fd
 
   union
   {
+    struct fd_t_icmp_pcap
+    {
+      void         *addr;
+      pcap_t       *pcap;
+    } fd_t_icmp_pcap;
+
     struct fd_t_tcp
     {
       void         *addr;
@@ -105,16 +118,20 @@ struct scamper_fd
     struct fd_t_dl
     {
       int           ifindex;
+      pcap_t       *pcap;
       scamper_dl_t *dl;
     } fd_t_dl;
 
   } fd_t_un;
 };
 
+static int virtual_counter = 0;
+
+
 #define SCAMPER_FD_TYPE_PRIVATE  0x00
-#define SCAMPER_FD_TYPE_ICMP4    0x01
-#define SCAMPER_FD_TYPE_ICMP4ERR 0x02
-#define SCAMPER_FD_TYPE_ICMP6    0x03
+#define SCAMPER_FD_TYPE_PROBE_ICMP4    0x01
+#define SCAMPER_FD_TYPE_PROBE_ICMP4ERR 0x02
+#define SCAMPER_FD_TYPE_PROBE_ICMP6    0x03
 #define SCAMPER_FD_TYPE_UDP4     0x04
 #define SCAMPER_FD_TYPE_UDP4DG   0x05
 #define SCAMPER_FD_TYPE_UDP6     0x06
@@ -130,6 +147,9 @@ struct scamper_fd
 #define SCAMPER_FD_TYPE_IFSOCK   0x0e
 #endif
 
+#define SCAMPER_FD_TYPE_PCAP_ICMP4    0x0f
+#define SCAMPER_FD_TYPE_PCAP_ICMP6    0x10
+
 #define SCAMPER_FD_TYPE_IS_UDP(fd) (      \
   (fd)->type == SCAMPER_FD_TYPE_UDP4   || \
   (fd)->type == SCAMPER_FD_TYPE_UDP4DG || \
@@ -137,23 +157,23 @@ struct scamper_fd
   (fd)->type == SCAMPER_FD_TYPE_UDP6ERR)
 
 #define SCAMPER_FD_TYPE_IS_ICMP(fd) (       \
-  (fd)->type == SCAMPER_FD_TYPE_ICMP4    || \
-  (fd)->type == SCAMPER_FD_TYPE_ICMP4ERR || \
-  (fd)->type == SCAMPER_FD_TYPE_ICMP6)
+  (fd)->type == SCAMPER_FD_TYPE_PROBE_ICMP4    || \
+  (fd)->type == SCAMPER_FD_TYPE_PROBE_ICMP4ERR || \
+  (fd)->type == SCAMPER_FD_TYPE_PROBE_ICMP6)
 
 #define SCAMPER_FD_TYPE_IS_TCP(fd) (      \
   (fd)->type == SCAMPER_FD_TYPE_TCP4 ||   \
   (fd)->type == SCAMPER_FD_TYPE_TCP6)
 
 #define SCAMPER_FD_TYPE_IS_IPV4(fd) (       \
-  (fd)->type == SCAMPER_FD_TYPE_ICMP4    || \
-  (fd)->type == SCAMPER_FD_TYPE_ICMP4ERR || \
+  (fd)->type == SCAMPER_FD_TYPE_PROBE_ICMP4    || \
+  (fd)->type == SCAMPER_FD_TYPE_PROBE_ICMP4ERR || \
   (fd)->type == SCAMPER_FD_TYPE_UDP4     || \
   (fd)->type == SCAMPER_FD_TYPE_UDP4DG   || \
   (fd)->type == SCAMPER_FD_TYPE_TCP4)
 
 #define SCAMPER_FD_TYPE_IS_IPV6(fd) (      \
-  (fd)->type == SCAMPER_FD_TYPE_ICMP6   || \
+  (fd)->type == SCAMPER_FD_TYPE_PROBE_ICMP6   || \
   (fd)->type == SCAMPER_FD_TYPE_UDP6    || \
   (fd)->type == SCAMPER_FD_TYPE_UDP6ERR || \
   (fd)->type == SCAMPER_FD_TYPE_TCP6)
@@ -168,8 +188,11 @@ struct scamper_fd
 #define fd_udp_sport  fd_t_un.fd_t_udp.sport
 #define fd_udp_addr   fd_t_un.fd_t_udp.addr
 #define fd_icmp_addr  fd_t_un.fd_t_icmp.addr
+#define fd_pcap_icmp_addr  fd_t_un.fd_t_icmp_pcap.addr
+#define fd_pcap_icmp_pcap  fd_t_un.fd_t_icmp_pcap.pcap
 #define fd_dl_ifindex fd_t_un.fd_t_dl.ifindex
 #define fd_dl_dl      fd_t_un.fd_t_dl.dl
+#define fd_dl_pcap      fd_t_un.fd_t_dl.pcap
 
 static scamper_fd_t **fd_array    = NULL;
 static int            fd_array_s  = 0;
@@ -211,17 +234,27 @@ static char *fd_tostr(scamper_fd_t *fdn)
     case SCAMPER_FD_TYPE_FILE:
       return "file";
 
-    case SCAMPER_FD_TYPE_ICMP4:
+    case SCAMPER_FD_TYPE_PROBE_ICMP4:
       snprintf(buf, sizeof(buf), "icmp4%s",
 	       fd_addr_tostr(addr, sizeof(addr), AF_INET, fdn->fd_icmp_addr));
       return buf;
 
-    case SCAMPER_FD_TYPE_ICMP4ERR:
+    case SCAMPER_FD_TYPE_PCAP_ICMP4:
+      snprintf(buf, sizeof(buf), "icmp4%s",
+	       fd_addr_tostr(addr, sizeof(addr), AF_INET, fdn->fd_icmp_addr));
+      return buf;
+
+    case SCAMPER_FD_TYPE_PCAP_ICMP6:
+      snprintf(buf, sizeof(buf), "icmp6%s",
+	       fd_addr_tostr(addr, sizeof(addr), AF_INET6, fdn->fd_icmp_addr));
+      return buf;
+
+    case SCAMPER_FD_TYPE_PROBE_ICMP4ERR:
       snprintf(buf, sizeof(buf), "icmp4err%s",
 	       fd_addr_tostr(addr, sizeof(addr), AF_INET, fdn->fd_icmp_addr));
       return buf;
 
-    case SCAMPER_FD_TYPE_ICMP6:
+    case SCAMPER_FD_TYPE_PROBE_ICMP6:
       snprintf(buf, sizeof(buf), "icmp6%s",
 	       fd_addr_tostr(addr, sizeof(addr), AF_INET6, fdn->fd_icmp_addr));
       return buf;
@@ -288,13 +321,19 @@ static void fd_close(scamper_fd_t *fdn)
     case SCAMPER_FD_TYPE_FILE:
       break;
 
-    case SCAMPER_FD_TYPE_ICMP4:
-    case SCAMPER_FD_TYPE_ICMP4ERR:
-      scamper_icmp4_close(fdn->fd);
+    case SCAMPER_FD_TYPE_PCAP_ICMP4:
+      scamper_pcap_icmp4_close(fdn->fd_pcap_icmp_pcap);
+      break;
+    case SCAMPER_FD_TYPE_PCAP_ICMP6:
+      scamper_pcap_icmp6_close(fdn->fd_pcap_icmp_pcap);
+      break;
+   case SCAMPER_FD_TYPE_PROBE_ICMP4:
+    case SCAMPER_FD_TYPE_PROBE_ICMP4ERR:
+      scamper_probe_icmp4_close(fdn->fd);
       break;
 
-    case SCAMPER_FD_TYPE_ICMP6:
-      scamper_icmp6_close(fdn->fd);
+    case SCAMPER_FD_TYPE_PROBE_ICMP6:
+      scamper_probe_icmp6_close(fdn->fd);
       break;
 
     case SCAMPER_FD_TYPE_UDP4:
@@ -316,7 +355,7 @@ static void fd_close(scamper_fd_t *fdn)
       break;
 
     case SCAMPER_FD_TYPE_DL:
-      scamper_dl_close(fdn->fd);
+      scamper_dl_close(fdn->fd_dl_pcap);
       break;
 
 #ifdef SCAMPER_FD_TYPE_RTSOCK
@@ -332,6 +371,10 @@ static void fd_close(scamper_fd_t *fdn)
 #endif
     }
 
+#ifdef _WIN32
+  WSACloseEvent(fdn->read_event);
+  WSACloseEvent(fdn->write_event);
+#endif
   return;
 }
 
@@ -442,6 +485,102 @@ static int fd_poll_setlist(void *item, void *param)
   return 0;
 }
 
+#ifdef _WIN32
+/*
+ * fds_select_assemble
+ *
+ * given a list of scamper_fd_poll_t structures held in a list, compose an
+ * fd_set for them to pass to select.
+ */
+static int fds_select_assemble(dlist_t *fds, slist_t **file_list,
+			       fd_set *fdset, fd_set **fdsp, int *nfds,
+			       const int event,
+  			       scamper_fd_poll_t ** fdps,
+			       HANDLE *events, int * count_event
+			       )
+{
+  scamper_fd_poll_t *fdp;
+  dlist_node_t      *node;
+  int                count = 0;
+
+  FD_ZERO(fdset);
+
+  node = dlist_head_node(fds);
+
+  while(node != NULL)
+    {
+      /* file descriptor associated with the node */
+      fdp = (scamper_fd_poll_t *)dlist_node_item(node);
+
+      /* get the next node incase this node is subsequently removed */
+      node = dlist_node_next(node);
+
+      /* if there is nothing using this fdn any longer, then stop polling it */
+      if(fdp->fdn->refcnt == 0 && fdp->fdn->rc0 == NULL)
+	{
+	  fd_refcnt_0(fdp->fdn);
+	  continue;
+	}
+
+      /* if the inactive flag is set, then skip over this file descriptor */
+      if((fdp->flags & SCAMPER_FD_POLL_FLAG_INACTIVE) != 0)
+	{
+	  dlist_node_eject(fds, fdp->node);
+	  fdp->list = NULL;
+	  continue;
+	}
+
+      if(fdp->fdn->type == SCAMPER_FD_TYPE_FILE)
+	{
+	  if((*file_list == NULL && (*file_list = slist_alloc()) == NULL) ||
+	     slist_tail_push(*file_list, fdp) == NULL)
+	    return -1;
+	  continue;
+	}
+
+      /* monitor this file descriptor */
+      switch(fdp->fdn->type)
+        {
+            case SCAMPER_FD_TYPE_DL:
+	            events[*count_event] = pcap_getevent(fdp->fdn->fd_dl_pcap);
+	            fdps[*count_event] = fdp;
+	            ++(*count_event); 
+                break;
+            case SCAMPER_FD_TYPE_PCAP_ICMP4:
+            case SCAMPER_FD_TYPE_PCAP_ICMP6:
+                events[*count_event] = pcap_getevent(fdp->fdn->fd_pcap_icmp_pcap);
+                fdps[*count_event] = fdp;
+                ++(*count_event);
+                break;
+            default:
+                if (event == FD_READ)
+                    events[*count_event] = fdp->fdn->read_event;
+                else if (event == FD_WRITE)
+                    events[*count_event] = fdp->fdn->write_event;
+                WSAEventSelect(fdp->fdn->fd, events[*count_event], event);
+	            fdps[*count_event] = fdp;
+	            ++(*count_event);
+              break;
+        }
+ 
+      /* update the maxfd seen if appropriate */
+      if(*nfds < fdp->fdn->fd)
+	*nfds = fdp->fdn->fd;
+    }
+
+  /*
+   * if there are no fds in the set to monitor, then return a null pointer
+   * to pass to select
+   */
+  if(count == 0)
+    *fdsp = NULL;
+  else
+    *fdsp = fdset;
+
+  return 0;
+}
+#else
+
 /*
  * fds_select_assemble
  *
@@ -509,6 +648,7 @@ static int fds_select_assemble(dlist_t *fds, slist_t **file_list,
 
   return 0;
 }
+#endif
 
 /*
  * fds_select_check
@@ -540,7 +680,7 @@ static void fds_select_check(fd_set *fdset, dlist_t *fds, int *count)
 
       if(FD_ISSET(fdp->fdn->fd, fdset))
 	{
-	  fdp->cb(fdp->fdn->fd, fdp->param);
+	  fdp->cb(fdp->fdn, fdp->param);
 	  (*count)--;
 	}
     }
@@ -560,12 +700,116 @@ static void fds_files_check(dlist_t *fds, slist_t *list)
 
   dlist_lock(fds);
   while((fdp = slist_head_pop(list)) != NULL)
-    fdp->cb(fdp->fdn->fd, fdp->param);
+    fdp->cb(fdp->fdn, fdp->param);
   dlist_unlock(fds);
 
   return;
 }
 
+
+#ifdef _WIN32
+static int fds_select(struct timeval *timeout)
+{
+  struct timeval tv;
+  fd_set rfds, *rfdsp;
+  fd_set wfds, *wfdsp;
+  slist_t *rfiles = NULL, *wfiles = NULL;
+  int count, nfds = -1;
+  scamper_fd_poll_t * fdps[255];
+  HANDLE events[255];
+  int count_event = 0;
+  DWORD ret = 0;
+  scamper_pcap_t pcap;
+
+  /* concat any new fds to monitor now */
+  dlist_foreach(read_queue, fd_poll_setlist, read_fds);
+  dlist_concat(read_fds, read_queue);
+  dlist_foreach(write_queue, fd_poll_setlist, write_fds);
+  dlist_concat(write_fds, write_queue);
+
+  /* compose the sets of file descriptors to monitor */
+  if(fds_select_assemble(read_fds, &rfiles, &rfds, &rfdsp, &nfds, FD_READ, fdps, events, &count_event) != 0)
+      goto err;
+  if(fds_select_assemble(write_fds, &wfiles, &wfds, &wfdsp, &nfds, FD_WRITE, fdps, events, &count_event) != 0)
+      goto err;
+
+  if(rfiles != NULL || wfiles != NULL)
+    {
+      tv.tv_sec = 0; tv.tv_usec = 0;
+      timeout = &tv;
+    }
+
+  /* find out which file descriptors have an event */
+  if (count_event == 0)
+  {
+      if (timeout != NULL && timeout->tv_sec >= 0 && timeout->tv_usec >= 0)
+          Sleep((timeout->tv_sec * 1000) + (timeout->tv_usec / 1000));
+      count = 0;
+      return 0;
+  }
+  else {
+      if (rfiles != NULL) {
+          dlist_lock(rfiles);
+      }
+      if (wfiles != NULL) {
+          dlist_lock(wfiles);
+      }
+      while (count_event != 0) {
+          DWORD ret = WaitForMultipleObjects(count_event, events, FALSE, (timeout->tv_sec * 1000) + (timeout->tv_usec / 1000));
+          switch (ret)
+          {
+          case WAIT_TIMEOUT:
+              goto quit;
+          case WAIT_FAILED:
+              if (rfiles != NULL) {
+                  dlist_unlock(rfiles);
+              }
+              if (wfiles != NULL) {
+                  dlist_unlock(wfiles);
+              }
+
+              goto err;
+          default:
+              int idx = ret - WAIT_OBJECT_0;
+              if (idx >= 0) {
+                  scamper_fd_poll_t* t = fdps[idx];
+
+                  switch (t->fdn->type) {
+                  case SCAMPER_FD_TYPE_DL:
+                      t->cb(t->fdn->fd_dl_pcap, t->param);
+                      break;
+                  case SCAMPER_FD_TYPE_PCAP_ICMP4:
+                  case SCAMPER_FD_TYPE_PCAP_ICMP6:
+                      pcap.fd = t->fdn->fd;
+                      pcap.pcap = t->fdn->fd_pcap_icmp_pcap;
+                      t->cb(&pcap, t->param);
+                      break;
+                  default:
+                      t->cb(&(t->fdn->fd), t->param);
+                      break;
+                  }
+                  memcpy(events + idx, events + (idx + 1), (count_event - idx - 1) * sizeof(HANDLE));
+                  memcpy(fdps + idx, fdps + (idx + 1), (count_event - idx - 1) * sizeof(scamper_fd_poll_t *));
+                  --count_event;
+              }
+          }
+      }
+  }
+
+quit:
+  if (rfiles != NULL) {
+      dlist_unlock(rfiles);
+  }
+  if (wfiles != NULL) {
+      dlist_unlock(wfiles);
+  }
+  return 0;
+err:
+  if(rfiles != NULL) slist_free(rfiles);
+  if(wfiles != NULL) slist_free(wfiles);
+  return -1;
+}
+#else
 static int fds_select(struct timeval *timeout)
 {
   struct timeval tv;
@@ -635,6 +879,7 @@ static int fds_select(struct timeval *timeout)
   if(wfiles != NULL) slist_free(wfiles);
   return -1;
 }
+#endif
 
 #ifdef HAVE_POLL
 static struct pollfd *poll_fds = NULL;
@@ -643,6 +888,7 @@ static int poll_fdc = 0;
 static void fds_poll_check(short event, int rc, int count)
 {
   scamper_fd_t *fd;
+  scamper_pcap_t pcap;
   int i;
 
   for(i=0; i<count; i++)
@@ -659,19 +905,47 @@ static void fds_poll_check(short event, int rc, int count)
        * ensure that the fd is still valid as far as scamper's monitoring
        * of it goes.
        */
-      if(poll_fds[i].fd >= 0 && poll_fds[i].fd < fd_array_s &&
+ 
+      if(poll_fds[i].fd >= 0 && /*poll_fds[i].fd < fd_array_s &&*/
 	 (fd = fd_array[poll_fds[i].fd]) != NULL)
 	{
-	  if(event == POLLIN)
-	    fd->read.cb(fd->fd, fd->read.param);
-	  else
-	    fd->write.cb(fd->fd, fd->write.param);
-	}
-
-      if(--rc == 0)
-	break;
+	  if(event == POLLIN) {
+          switch(fd->type)
+          {
+              case SCAMPER_FD_TYPE_DL:
+                  fd->read.cb(fd->fd_dl_pcap, fd->read.param);
+                  break;
+              case SCAMPER_FD_TYPE_PCAP_ICMP4:
+              case SCAMPER_FD_TYPE_PCAP_ICMP6:
+                  pcap.fd = fd->fd;
+                  pcap.pcap = fd->fd_pcap_icmp_pcap;
+                  fd->read.cb(&pcap, fd->read.param);
+                  break;
+              default:
+                  fd->read.cb(&(fd->fd), fd->read.param);
+                  break;
+          }
+      }
+	  else {
+          switch(fd->type)
+          {
+              case SCAMPER_FD_TYPE_DL:
+                  fd->write.cb(fd->fd_dl_pcap, fd->read.param);
+                  break;
+              case SCAMPER_FD_TYPE_PCAP_ICMP4:
+              case SCAMPER_FD_TYPE_PCAP_ICMP6:
+                  fd->write.cb(fd->fd_pcap_icmp_pcap, fd->read.param);
+                  break;
+              default:
+                  fd->write.cb(&(fd->fd), fd->read.param);
+                  break;
+          }
+      }
     }
 
+      if(--rc == 0)
+          break;
+    }
   return;
 }
 
@@ -711,8 +985,14 @@ static int fds_poll(struct timeval *tv)
 	    }
 	  poll_fdc = count + 1;
 	}
-
-      poll_fds[count].fd = fd->fd;
+      if (fd->type == SCAMPER_FD_TYPE_DL) {
+        poll_fds[count].fd = pcap_get_selectable_fd(fd->fd_dl_pcap);
+      } else if (fd->type == SCAMPER_FD_TYPE_PCAP_ICMP4 || fd->type == SCAMPER_FD_TYPE_PCAP_ICMP6) {
+        poll_fds[count].fd = pcap_get_selectable_fd(fd->fd_pcap_icmp_pcap);
+      }
+      else {
+        poll_fds[count].fd = fd->fd;
+      }
       poll_fds[count].events = 0;
       poll_fds[count].revents = 0;
 
@@ -952,14 +1232,14 @@ static int fds_epoll(struct timeval *tv)
 	{
 	  if((fdp = fd_array[fd]) == NULL)
 	    continue;
-	  fdp->read.cb(fd, fdp->read.param);
+	  fdp->read.cb(fdp, fdp->read.param);
 	}
 
       if(ep_events[i].events & EPOLLOUT)
 	{
 	  if((fdp = fd_array[fd]) == NULL)
 	    continue;
-	  fdp->write.cb(fd, fdp->write.param);
+	  fdp->write.cb(fdp, fdp->write.param);
 	}
     }
 
@@ -972,8 +1252,9 @@ static int fd_addr_cmp(int type, void *a, void *b)
   assert(type == SCAMPER_FD_TYPE_TCP4   || type == SCAMPER_FD_TYPE_TCP6 ||
 	 type == SCAMPER_FD_TYPE_UDP4   || type == SCAMPER_FD_TYPE_UDP6 ||
 	 type == SCAMPER_FD_TYPE_UDP4DG || type == SCAMPER_FD_TYPE_UDP6ERR ||
-	 type == SCAMPER_FD_TYPE_ICMP4  || type == SCAMPER_FD_TYPE_ICMP6 ||
-	 type == SCAMPER_FD_TYPE_ICMP4ERR);
+	 type == SCAMPER_FD_TYPE_PROBE_ICMP4  || type == SCAMPER_FD_TYPE_PROBE_ICMP6 ||
+	 type == SCAMPER_FD_TYPE_PROBE_ICMP4ERR ||
+     type == SCAMPER_FD_TYPE_PCAP_ICMP4 || type == SCAMPER_FD_TYPE_PCAP_ICMP6);
 
   if(a == NULL && b != NULL) return -1;
   if(a != NULL && b == NULL) return  1;
@@ -982,8 +1263,10 @@ static int fd_addr_cmp(int type, void *a, void *b)
   if(type == SCAMPER_FD_TYPE_TCP4   ||
      type == SCAMPER_FD_TYPE_UDP4   ||
      type == SCAMPER_FD_TYPE_UDP4DG ||
-     type == SCAMPER_FD_TYPE_ICMP4  ||
-     type == SCAMPER_FD_TYPE_ICMP4ERR)
+     type == SCAMPER_FD_TYPE_PCAP_ICMP4  ||
+     type == SCAMPER_FD_TYPE_PCAP_ICMP6  ||
+     type == SCAMPER_FD_TYPE_PROBE_ICMP4  ||
+     type == SCAMPER_FD_TYPE_PROBE_ICMP4ERR)
     return addr4_cmp(a, b);
   else
     return addr6_cmp(a, b);
@@ -1024,9 +1307,11 @@ static int fd_cmp(const scamper_fd_t *a, const scamper_fd_t *b)
       if(a->fd_dl_ifindex > b->fd_dl_ifindex) return  1;
       return 0;
 
-    case SCAMPER_FD_TYPE_ICMP4:
-    case SCAMPER_FD_TYPE_ICMP4ERR:
-    case SCAMPER_FD_TYPE_ICMP6:
+    case SCAMPER_FD_TYPE_PROBE_ICMP4:
+    case SCAMPER_FD_TYPE_PCAP_ICMP4:
+    case SCAMPER_FD_TYPE_PCAP_ICMP6:
+    case SCAMPER_FD_TYPE_PROBE_ICMP4ERR:
+    case SCAMPER_FD_TYPE_PROBE_ICMP6:
       return fd_addr_cmp(a->type, a->fd_icmp_addr, b->fd_icmp_addr);
     }
 
@@ -1062,6 +1347,10 @@ static scamper_fd_t *fd_alloc_dm(int type, int fd, const char *file,
   fdn->fd     = fd;
   fdn->refcnt = 1;
 
+#ifdef _WIN32
+  fdn->read_event = WSACreateEvent();
+  fdn->write_event = WSACreateEvent();
+#endif
   /* set up to poll read ability */
   if((fdn->read.node = dlist_node_alloc(&fdn->read)) == NULL)
     {
@@ -1210,19 +1499,19 @@ static scamper_fd_t *fd_icmp(int type, void *addr)
       return fdn;
     }
 
-  if(type == SCAMPER_FD_TYPE_ICMP4)
+  if(type == SCAMPER_FD_TYPE_PROBE_ICMP4)
     {
-      fd  = scamper_icmp4_open(addr);
+      fd  = scamper_probe_icmp4_open(addr);
       len = sizeof(struct in_addr);
     }
-  else if(type == SCAMPER_FD_TYPE_ICMP6)
+  else if(type == SCAMPER_FD_TYPE_PROBE_ICMP6)
     {
-      fd  = scamper_icmp6_open(addr);
+      fd  = scamper_probe_icmp6_open(addr);
       len = sizeof(struct in6_addr);
     }
-  else if(type == SCAMPER_FD_TYPE_ICMP4ERR)
+  else if(type == SCAMPER_FD_TYPE_PROBE_ICMP4ERR)
     {
-      fd  = scamper_icmp4_open_err(addr);
+      fd  = scamper_probe_icmp4_open_err(addr);
       len = sizeof(struct in_addr);
     }
 
@@ -1240,14 +1529,73 @@ static scamper_fd_t *fd_icmp(int type, void *addr)
  err:
   if(fd != -1)
     {
-      if(type == SCAMPER_FD_TYPE_ICMP4 || type == SCAMPER_FD_TYPE_ICMP4ERR)
-	scamper_icmp4_close(fd);
-      else if(type == SCAMPER_FD_TYPE_ICMP6)
-	scamper_icmp6_close(fd);
+      if(type == SCAMPER_FD_TYPE_PROBE_ICMP4 || type == SCAMPER_FD_TYPE_PROBE_ICMP4ERR)
+	scamper_probe_icmp4_close(fd);
+      else if(type == SCAMPER_FD_TYPE_PROBE_ICMP6)
+	scamper_probe_icmp6_close(fd);
     }
   if(fdn != NULL) fd_free(fdn);
   return NULL;
 }
+
+static scamper_fd_t *pcap_icmp(int type, void *addr)
+{
+  scamper_fd_t *fdn = NULL, findme;
+  size_t len = 0;
+  pcap_t * pcap = NULL;
+
+  findme.type = type;
+  findme.fd_pcap_icmp_addr = addr;
+
+  if((fdn = fd_find(&findme)) != NULL)
+    {
+      return fdn;
+    }
+
+  if(type == SCAMPER_FD_TYPE_PCAP_ICMP4)
+    {
+      pcap = scamper_pcap_icmp4_open(addr);
+      len = sizeof(struct in_addr);
+    }
+  else if(type == SCAMPER_FD_TYPE_PCAP_ICMP6)
+    {
+      pcap  = scamper_pcap_icmp6_open(addr);
+      len = sizeof(struct in6_addr);
+    }
+
+  if(pcap == NULL) goto err;
+
+  #ifdef _WIN32
+  if ((fdn = fd_alloc(type, 4096 + ++virtual_counter)) == NULL) goto err;
+  #else
+  if ((fdn = fd_alloc(type, pcap_get_selectable_fd(pcap))) == NULL) goto err;
+  #endif
+     
+  if (addr != NULL && (fdn->fd_pcap_icmp_addr = memdup(addr, len)) == NULL)
+      goto err;
+
+  fdn->fd_pcap_icmp_pcap = pcap;
+
+  if((fdn->fd_tree_node = splaytree_insert(fd_tree, fdn)) == NULL ||
+     (fdn->fd_list_node = dlist_tail_push(fd_list, fdn)) == NULL)
+    {
+      goto err;
+    }
+  scamper_debug(__func__, "fd %d type %s", fdn->fd, fd_tostr(fdn));
+  return fdn;
+
+ err:
+  if(pcap != NULL)
+    {
+      if(type == SCAMPER_FD_TYPE_PCAP_ICMP4)
+          scamper_pcap_icmp4_close(pcap);
+      else if(type == SCAMPER_FD_TYPE_PROBE_ICMP6)
+          scamper_pcap_icmp6_close(pcap);
+    }
+  if(fdn != NULL) fd_free(fdn);
+  return NULL;
+}
+
 
 static scamper_fd_t *fd_tcp(int type, void *addr, uint16_t sport)
 {
@@ -1426,6 +1774,13 @@ int scamper_fd_fd_get(const scamper_fd_t *fdn)
   return fdn->raw->fd;
 }
 
+void *scamper_fd_pcap_get(const scamper_fd_t *fdn)
+{
+    return fdn->fd_dl_pcap;
+}
+
+
+
 /*
  * scamper_fd_fd_set
  *
@@ -1571,37 +1926,49 @@ void scamper_fd_write_set(scamper_fd_t *fdn, scamper_fd_cb_t cb, void *param)
   return;
 }
 
-scamper_fd_t *scamper_fd_icmp4(void *addr)
+scamper_fd_t *scamper_fd_pcap_icmp4(void *addr)
 {
   scamper_fd_t *fdn;
-  if((fdn = fd_icmp(SCAMPER_FD_TYPE_ICMP4, addr)) != NULL)
+  if((fdn = pcap_icmp(SCAMPER_FD_TYPE_PCAP_ICMP4, addr)) != NULL)
     {
-      fdn->read.cb = scamper_icmp4_read_cb;
+      fdn->read.cb = scamper_pcap_icmp4_read_cb;
       scamper_fd_read_unpause(fdn);
     }
   return fdn;
 }
 
-scamper_fd_t *scamper_fd_icmp4_err(void *addr)
+scamper_fd_t *scamper_fd_pcap_icmp6(void *addr)
 {
   scamper_fd_t *fdn;
-  if((fdn = fd_icmp(SCAMPER_FD_TYPE_ICMP4ERR, addr)) != NULL)
+  if((fdn = pcap_icmp(SCAMPER_FD_TYPE_PCAP_ICMP6, addr)) != NULL)
     {
-      fdn->read.cb = scamper_icmp4_read_err_cb;
+      fdn->read.cb = scamper_pcap_icmp6_read_cb;
       scamper_fd_read_unpause(fdn);
     }
   return fdn;
 }
 
-scamper_fd_t *scamper_fd_icmp6(void *addr)
+
+
+scamper_fd_t *scamper_fd_probe_icmp4(void *addr)
+{
+  return fd_icmp(SCAMPER_FD_TYPE_PROBE_ICMP4, addr);
+}
+
+scamper_fd_t *scamper_fd_probe_icmp4_err(void *addr)
 {
   scamper_fd_t *fdn;
-  if((fdn = fd_icmp(SCAMPER_FD_TYPE_ICMP6, addr)) != NULL)
+  if((fdn = fd_icmp(SCAMPER_FD_TYPE_PROBE_ICMP4ERR, addr)) != NULL)
     {
-      fdn->read.cb = scamper_icmp6_read_cb;
+      fdn->read.cb = scamper_probe_icmp4_read_err_cb;
       scamper_fd_read_unpause(fdn);
     }
   return fdn;
+}
+
+scamper_fd_t *scamper_fd_probe_icmp6(void *addr)
+{
+  return fd_icmp(SCAMPER_FD_TYPE_PROBE_ICMP6, addr);
 }
 
 #ifndef _WIN32
@@ -1679,7 +2046,7 @@ scamper_fd_t *scamper_fd_ifsock(void)
 scamper_fd_t *scamper_fd_dl(int ifindex)
 {
   scamper_fd_t *fdn = NULL, findme;
-  int fd = -1;
+  pcap_t * pcap = NULL;
 
   findme.type = SCAMPER_FD_TYPE_DL;
   findme.fd_dl_ifindex = ifindex;
@@ -1694,17 +2061,19 @@ scamper_fd_t *scamper_fd_dl(int ifindex)
    * open the file descriptor for the ifindex, and then allocate a scamper_fd
    * for the file descriptor
    */
-  if((fd  = scamper_dl_open(ifindex)) == -1 ||
-     (fdn = fd_alloc(SCAMPER_FD_TYPE_DL, fd)) == NULL)
-    {
-      goto err;
-    }
-
+  if((pcap  = scamper_dl_open(ifindex)) == NULL) goto err;
+  #ifdef _WIN32
+  if ((fdn = fd_alloc(SCAMPER_FD_TYPE_DL, 4096 + ++virtual_counter)) == NULL) goto err;
+  #else
+  if ((fdn = fd_alloc(SCAMPER_FD_TYPE_DL, pcap_get_selectable_fd(pcap))) == NULL) goto err;
+  #endif
+ 
   /*
    * record the ifindex for the file descriptor, and then allocate the state
    * that is maintained with it
    */
   fdn->fd_dl_ifindex = ifindex;
+  fdn->fd_dl_pcap = pcap;
 
   /*
    * 1. add the file descriptor to the splay tree
@@ -1729,7 +2098,7 @@ scamper_fd_t *scamper_fd_dl(int ifindex)
 
  err:
   if(fdn != NULL) free(fdn);
-  if(fd != -1) scamper_dl_close(fd);
+  if(pcap != NULL) scamper_dl_close(pcap);
   return NULL;
 }
 
@@ -1832,9 +2201,9 @@ int scamper_fd_addr(const scamper_fd_t *fdn, void *addr, size_t len)
     case SCAMPER_FD_TYPE_UDP6ERR:  a = fdn->fd_udp_addr;  l = 16; break;
     case SCAMPER_FD_TYPE_TCP4:     a = fdn->fd_tcp_addr;  l = 4;  break;
     case SCAMPER_FD_TYPE_TCP6:     a = fdn->fd_tcp_addr;  l = 16; break;
-    case SCAMPER_FD_TYPE_ICMP4:    a = fdn->fd_icmp_addr; l = 4;  break;
-    case SCAMPER_FD_TYPE_ICMP4ERR: a = fdn->fd_icmp_addr; l = 4;  break;
-    case SCAMPER_FD_TYPE_ICMP6:    a = fdn->fd_icmp_addr; l = 16; break;
+    case SCAMPER_FD_TYPE_PROBE_ICMP4:    a = fdn->fd_icmp_addr; l = 4;  break;
+    case SCAMPER_FD_TYPE_PROBE_ICMP4ERR: a = fdn->fd_icmp_addr; l = 4;  break;
+    case SCAMPER_FD_TYPE_PROBE_ICMP6:    a = fdn->fd_icmp_addr; l = 16; break;
     default: return -1;
     }
 

@@ -41,7 +41,7 @@ void scamper_route_free(scamper_route_t *route);
 #ifndef _WIN32
 int scamper_rtsock_open(void);
 int scamper_rtsock_open_fd(void);
-void scamper_rtsock_read_cb(const int fd, void *param);
+void scamper_rtsock_read_cb(void * fd, void *param);
 void scamper_rtsock_close(int fd);
 #endif
 

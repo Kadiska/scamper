@@ -93,7 +93,10 @@ scamper_source_t *scamper_source_cmdline_alloc(scamper_source_params_t *ssp,
       cmd_len = strlen(cmd);
       for(i=0; i<arg_cnt; i++)
 	{
-	  if(command_assemble(&buf, &len, cmd, cmd_len, arg[i]) != 0 ||
+	  if (strcmp(arg[i], "-i") == 0) {
+	      // TODO: We skip for now, but we need to check why on windows we have this
+          }
+	  else if(command_assemble(&buf, &len, cmd, cmd_len, arg[i]) != 0 ||
 	     scamper_source_command(source, buf) != 0)
 	    {
 	      goto err;
@@ -104,8 +107,9 @@ scamper_source_t *scamper_source_cmdline_alloc(scamper_source_params_t *ssp,
     {
       for(i=0; i<arg_cnt; i++)
 	{
-	  if(scamper_source_command(source, arg[i]) != 0)
+	  if(scamper_source_command(source, arg[i]) != 0) {
 	    goto err;
+	  }
 	}
     }
 

@@ -47,8 +47,8 @@
 #include "scamper_getsrc.h"
 #include "scamper_udp4.h"
 #include "scamper_udp6.h"
-#include "scamper_icmp4.h"
-#include "scamper_icmp6.h"
+#include "scamper_probe_icmp4.h"
+#include "scamper_probe_icmp6.h"
 #include "scamper_queue.h"
 #include "scamper_file.h"
 #include "scamper_options.h"
@@ -3994,7 +3994,7 @@ static int tracelb_state_alloc(scamper_task_t *task)
 	}
       else if(trace->type == SCAMPER_TRACELB_TYPE_ICMP_ECHO)
 	{
-	  if((state->probe = scamper_fd_icmp4(addr)) == NULL)
+	  if((state->probe = scamper_fd_probe_icmp4(addr)) == NULL)
 	    goto err;
 	}
       else if(SCAMPER_TRACELB_TYPE_VARY_SPORT(trace) == 0)
@@ -4007,7 +4007,7 @@ static int tracelb_state_alloc(scamper_task_t *task)
       else
 	state->payload_size = trace->probe_size - 28;
 
-      state->icmp = scamper_fd_icmp4(addr);
+      state->icmp = scamper_fd_probe_icmp4(addr);
     }
   else if(trace->dst->type == SCAMPER_ADDR_TYPE_IPV6)
     {
@@ -4018,7 +4018,7 @@ static int tracelb_state_alloc(scamper_task_t *task)
 	}
       else if(trace->type == SCAMPER_TRACELB_TYPE_ICMP_ECHO)
 	{
-	  if((state->probe = scamper_fd_icmp6(addr)) == NULL)
+	  if((state->probe = scamper_fd_probe_icmp6(addr)) == NULL)
 	    goto err;
 	}
       else if(trace->type != SCAMPER_TRACELB_TYPE_UDP_SPORT)
@@ -4026,7 +4026,7 @@ static int tracelb_state_alloc(scamper_task_t *task)
 	  goto err;
 	}
 
-      state->icmp         = scamper_fd_icmp6(addr);
+      state->icmp         = scamper_fd_probe_icmp6(addr);
       state->payload_size = trace->probe_size - 48;
     }
   else goto err;
@@ -4276,9 +4276,9 @@ static void do_tracelb_probe(scamper_task_t *task)
       /* fudge the checksum field so it is used as the flow id */
       memcpy(probe.pr_data, &u16, 2);
       if(trace->dst->type == SCAMPER_ADDR_TYPE_IPV4)
-	u16 = scamper_icmp4_cksum(&probe);
+	u16 = scamper_probe_icmp4_cksum(&probe);
       else
-	u16 = scamper_icmp6_cksum(&probe);
+	u16 = scamper_probe_icmp6_cksum(&probe);
       memcpy(probe.pr_data, &u16, 2);
     }
   else

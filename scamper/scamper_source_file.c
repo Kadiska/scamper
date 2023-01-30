@@ -227,8 +227,9 @@ static int ssf_read_line(void *param, uint8_t *buf, size_t len)
   return -1;
 }
 
-static void ssf_read(const int fd, void *param)
+static void ssf_read(void * fd_, void *param)
 {
+  int fd = *((int *)fd_);
   scamper_source_file_t *ssf = (scamper_source_file_t *)param;
   scamper_source_t *source = ssf->source;
   uint8_t buf[1024];

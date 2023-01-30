@@ -46,8 +46,8 @@
 #include "scamper_debug.h"
 #include "scamper_ping_do.h"
 #include "scamper_options.h"
-#include "scamper_icmp4.h"
-#include "scamper_icmp6.h"
+#include "scamper_probe_icmp4.h"
+#include "scamper_probe_icmp6.h"
 #include "utils.h"
 
 #define SCAMPER_DO_PING_PROBECOUNT_MIN    1
@@ -1089,9 +1089,9 @@ static void do_ping_probe(scamper_task_t *task)
 		i += 4;
 	      memcpy(state->payload+i, &u16, 2);
 	      if(SCAMPER_ADDR_TYPE_IS_IPV4(ping->dst))
-		u16 = scamper_icmp4_cksum(&probe);
+		u16 = scamper_probe_icmp4_cksum(&probe);
 	      else
-		u16 = scamper_icmp6_cksum(&probe);
+		u16 = scamper_probe_icmp6_cksum(&probe);
 	      memcpy(state->payload+i, &u16, 2);
 	    }
 	}

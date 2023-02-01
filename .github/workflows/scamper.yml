@@ -1,0 +1,81 @@
+# This workflow will build scamper binaries
+
+name: scamper
+
+on:
+  push:
+    branches:
+      - 'kadiska'
+      - 'libpcap'
+  pull_request:
+
+  release:
+    types:
+      - created
+
+jobs:
+
+  debian:
+
+    runs-on: ubuntu-latest
+    container: debian:bullseye
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Install dependencies
+        run: |
+          apt-get update
+          DEBIAN_FRONTEND=noninteractive apt-get install --no-install-recommends -y \
+             make \
+             automake \
+             gcc \
+             build-essential \
+             libpcap-dev \
+             libssl1.1 \
+             libssl-dev
+
+      - name: build binary for debian bullseye
+        run: |
+          touch NEWS
+          touch README
+          touch AUTHORS
+          touch ChangeLog
+
+          aclocal
+          autoheader
+          autoconf
+          automake --add-missing
+
+          LIBS=-lpcap ./configure --disable-privsep
+          make
+
+      - name: Upload debian bullseye binary as artefact
+        uses: actions/upload-artifact@v3
+        with:
+          name: "scamper_linux_debian_bullseye"
+          path: scamper/scamper
+          retention-days: 10
+
+  windows:
+    runs-on: windows-latest
+
+    strategy:
+      matrix:
+        arch: ["x64", "x86"]
+
+    steps:
+      - uses: actions/checkout@v3
+      - uses: microsoft/setup-msbuild@v1
+        with:
+          msbuild-architecture: ${{ matrix.arch }}
+
+      - name: Build binary
+        run: msbuild windows\scamper.vcxproj -t:rebuild -verbosity:diag -property:Configuration=Release
+
+      - name: Upload windows binary as artefact
+        uses: actions/upload-artifact@v3
+        with:
+          name: "scamper_windows_${{ matrix.arch }}"
+          path: windows\Release\scamper.exe
+          retention-days: 10

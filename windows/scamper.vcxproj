@@ -135,6 +135,12 @@
       <AdditionalDependencies Condition="'$(Platform)'=='x64'">$(ProjectDir)npcap-sdk-1.13\Lib\x64\Packet.lib;$(ProjectDir)npcap-sdk-1.13\Lib\x64\wpcap.lib</AdditionalDependencies>
       <AdditionalDependencies Condition="'$(Platform)'=='x86'">$(ProjectDir)npcap-sdk-1.13\Lib\Packet.lib;$(ProjectDir)npcap-sdk-1.13\Lib\wpcap.lib</AdditionalDependencies>
     </Link>
+    <Link>
+      <AdditionalDependencies Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(ProjectDir)npcap-sdk-1.13\Lib\Packet.lib;$(ProjectDir)npcap-sdk-1.13\Lib\wpcap.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
+    <Link>
+      <AdditionalDependencies Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">$(ProjectDir)npcap-sdk-1.13\Lib\Packet.lib;$(ProjectDir)npcap-sdk-1.13\Lib\wpcap.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="wingetopt.c" />

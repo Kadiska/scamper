@@ -62,7 +62,7 @@ jobs:
 
     strategy:
       matrix:
-        arch: ["x64", "x86"]
+        arch: ["x86", "x64"]
 
     steps:
       - uses: actions/checkout@v3
@@ -71,11 +71,4 @@ jobs:
           msbuild-architecture: ${{ matrix.arch }}
 
       - name: Build binary
-        run: msbuild windows\scamper.vcxproj -t:rebuild -verbosity:diag -property:Configuration=Release
-
-      - name: Upload windows binary as artefact
-        uses: actions/upload-artifact@v3
-        with:
-          name: "scamper_windows_${{ matrix.arch }}"
-          path: windows\Release\scamper.exe
-          retention-days: 10
+        run: msbuild windows\scamper.vcxproj -t:rebuild -verbosity:diag -property:Configuration=Release -property:Platform=${{ matrix.arch }}

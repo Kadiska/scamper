@@ -871,7 +871,7 @@ pcap_t * scamper_pcap_icmp4_open(const void *addr)
       goto err;
   }
 
-  pcap = pcap_open_live(device, BUFSIZ, 1, 10, errbuf);
+  pcap = pcap_open_live(device, BUFSIZ, 0, 10, errbuf);
   if (pcap == NULL) {
       printerror(__func__, "cannot initialize pcap: %s", errbuf);
       goto err;

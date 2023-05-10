@@ -1084,7 +1084,7 @@ static pcap_t * dl_linux_open(const int ifindex)
       printerror(__func__, "get_device_name %u failed", ifindex);
       return NULL;
   }
-  pcap = pcap_open_live(ifname, BUFSIZ, 1, 1000, errbuf);
+  pcap = pcap_open_live(ifname, BUFSIZ, 0, 1000, errbuf);
 
   if (pcap == NULL) {
       printerror(__func__, "%s", errbuf);

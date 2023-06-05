@@ -719,14 +719,15 @@ int scamper_rtsock_open()
 static int scamper_rtsock_getroute4(scamper_route_t *route)
 {
     struct in_addr* in = route->dst->addr;
-    SOCKADDR_INET address;
+    SOCKADDR_IN address;
     DWORD BestIfIndex;
     MIB_IPFORWARD_ROW2 fw;
     SOCKADDR_INET BestSourceAddress;
     DWORD dw;
 
-    address.si_family = AF_INET;
-    address.Ipv4.sin_addr = *in;
+    memset(&address, 0, sizeof(SOCKADDR_IN));
+    address.sin_family = AF_INET;
+    address.sin_addr = *in;
 
     if ((dw = GetBestInterfaceEx(&address, &BestIfIndex)) != NO_ERROR) {
         return -1;
@@ -754,15 +755,16 @@ static int scamper_rtsock_getroute4(scamper_route_t *route)
 static int scamper_rtsock_getroute6(scamper_route_t *route)
 {
   struct in6_addr *in = route->dst->addr;
-  SOCKADDR_INET address;
+  SOCKADDR_IN6 address;
   DWORD BestIfIndex;
   MIB_IPFORWARD_ROW2 fw;
   SOCKADDR_INET BestSourceAddress;
   DWORD dw;
   char hip[100];
 
-  address.si_family = AF_INET6;
-  memcpy(&(address.Ipv6.sin6_addr), in, sizeof(struct in6_addr));
+  memset(&address, 0, sizeof(SOCKADDR_IN6));
+  address.sin6_family = AF_INET6;
+  memcpy(&(address.sin6_addr), in, sizeof(struct in6_addr));
 
   if ((dw = GetBestInterfaceEx(&address, &BestIfIndex)) != NO_ERROR) {
       return -1;

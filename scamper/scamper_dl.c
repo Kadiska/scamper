@@ -1010,27 +1010,22 @@ static int dl_bpf_filter(scamper_dl_t *node, struct bpf_insn *insns, int len)
 
 static int get_device_name(char *name, const int ifindex)
 {
-    PIP_ADAPTER_INFO pAdapterInfo;
-    PIP_ADAPTER_INFO pAdapter = NULL;
+    PIP_ADAPTER_ADDRESSES  pAdapterInfo = NULL;
+    PIP_ADAPTER_ADDRESSES  pAdapter = NULL;
     DWORD dwRetVal = 0;
     UINT i;
     int ret = 0;
 
-    /* variables used to print DHCP time info */
-    struct tm newtime;
-    char buffer[32];
-    errno_t error;
-
-    ULONG ulOutBufLen = sizeof(IP_ADAPTER_INFO);
-    pAdapterInfo = (IP_ADAPTER_INFO*)malloc(sizeof(IP_ADAPTER_INFO) * 42);
+    ULONG ulOutBufLen = sizeof(IP_ADAPTER_ADDRESSES_LH);
+    pAdapterInfo = (PIP_ADAPTER_ADDRESSES*)malloc(ulOutBufLen);
     if (pAdapterInfo == NULL) {
         printf("Error allocating memory needed to call GetAdaptersinfo\n");
         return 1;
     }
 
-    // Make an initial call to GetAdaptersInfo to get
+    // Make an initial call to GetAdaptersAddresses to get
     // the necessary size into the ulOutBufLen variable
-    if (GetAdaptersInfo(pAdapterInfo, &ulOutBufLen) == ERROR_BUFFER_OVERFLOW) {
+    if (GetAdaptersAddresses(AF_UNSPEC, GAA_FLAG_INCLUDE_GATEWAYS | GAA_FLAG_INCLUDE_WINS_INFO | GAA_FLAG_SKIP_ANYCAST | GAA_FLAG_SKIP_MULTICAST, 0, pAdapterInfo, &ulOutBufLen) == ERROR_BUFFER_OVERFLOW) {
         free(pAdapterInfo);
         pAdapterInfo = (IP_ADAPTER_INFO*)malloc(ulOutBufLen);
         if (pAdapterInfo == NULL) {
@@ -1039,14 +1034,18 @@ static int get_device_name(char *name, const int ifindex)
         }
     }
 
-    GetAdaptersInfo(pAdapterInfo, &ulOutBufLen);
+    if (GetAdaptersAddresses(AF_UNSPEC, GAA_FLAG_INCLUDE_GATEWAYS | GAA_FLAG_INCLUDE_WINS_INFO | GAA_FLAG_SKIP_ANYCAST | GAA_FLAG_SKIP_MULTICAST, 0, pAdapterInfo, &ulOutBufLen) != NO_ERROR)
+        return 1;
     pAdapter = pAdapterInfo;
     while (pAdapter) {
-        
-        if (pAdapter->Index == ifindex)
-        {
-            strcpy(name, "\\Device\\NPF_");
-            strcat(name, pAdapter->AdapterName);
+        if (pAdapter->IfIndex == ifindex || pAdapter->Ipv6IfIndex == ifindex) {
+            if (pAdapter->IfType == IF_TYPE_SOFTWARE_LOOPBACK) {
+                strcpy(name, "\\Device\\NPF_Loopback");
+            }
+            else {
+                strcpy(name, "\\Device\\NPF_");
+                strcat(name, pAdapter->AdapterName);
+            }
             goto cleanup;
         }
         pAdapter = pAdapter->Next;

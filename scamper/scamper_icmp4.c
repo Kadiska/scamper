@@ -776,7 +776,7 @@ static int had_match(struct in_addr * expected_ip, PIP_ADAPTER_UNICAST_ADDRESS i
 {
     if (ips == NULL) return 0;
     struct sockaddr_in* ip = (ips->Address.lpSockaddr);
-    if (memcmp(expected_ip, &(ip->sin_addr.s_addr), sizeof(ip->sin_addr.s_addr)) == 0) return 1;
+    if (expected_ip->s_addr == ip->sin_addr.s_addr) return 1;
     else return had_match(expected_ip, ips->Next);
 }
 
@@ -806,13 +806,18 @@ static int get_device_name_by_ip(char * name, struct in_addr * expected_ip)
         }
     }
 
-    if (GetAdaptersAddresses(AF_INET, 0, 0, pAdapterInfo, &ulOutBufLen) != NO_ERROR)
+    if (GetAdaptersAddresses(AF_INET, GAA_FLAG_INCLUDE_GATEWAYS | GAA_FLAG_INCLUDE_WINS_INFO | GAA_FLAG_SKIP_ANYCAST | GAA_FLAG_SKIP_MULTICAST, 0, pAdapterInfo, &ulOutBufLen) != NO_ERROR)
         return 1;
     pAdapter = pAdapterInfo;
     while (pAdapter) {
         if (had_match(expected_ip, pAdapter->FirstUnicastAddress)) {
-            strcpy(name, "\\Device\\NPF_");
-            strcat(name, pAdapter->AdapterName);
+            if (pAdapter->IfType == IF_TYPE_SOFTWARE_LOOPBACK) {
+                strcpy(name, "\\Device\\NPF_Loopback");
+            }
+            else {
+                strcpy(name, "\\Device\\NPF_");
+                strcat(name, pAdapter->AdapterName);
+            }
             goto cleanup;
         }
         pAdapter = pAdapter->Next;

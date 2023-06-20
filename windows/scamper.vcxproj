@@ -137,12 +137,16 @@
     <Link>
       <AdditionalDependencies Condition="'$(Platform)'=='x64'">$(ProjectDir)npcap-sdk-1.13\Lib\x64\Packet.lib;$(ProjectDir)npcap-sdk-1.13\Lib\x64\wpcap.lib</AdditionalDependencies>
       <AdditionalDependencies Condition="'$(Platform)'=='x86'">$(ProjectDir)npcap-sdk-1.13\Lib\Packet.lib;$(ProjectDir)npcap-sdk-1.13\Lib\wpcap.lib</AdditionalDependencies>
+      <DelayLoadDLLs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">wpcap.dll</DelayLoadDLLs>
+      <DelayLoadDLLs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">wpcap.dll</DelayLoadDLLs>
     </Link>
     <Link>
       <AdditionalDependencies Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(ProjectDir)npcap-sdk-1.13\Lib\Packet.lib;$(ProjectDir)npcap-sdk-1.13\Lib\wpcap.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <DelayLoadDLLs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">wpcap.dll</DelayLoadDLLs>
     </Link>
     <Link>
       <AdditionalDependencies Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">$(ProjectDir)npcap-sdk-1.13\Lib\Packet.lib;$(ProjectDir)npcap-sdk-1.13\Lib\wpcap.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <DelayLoadDLLs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">wpcap.dll</DelayLoadDLLs>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>

@@ -70,7 +70,6 @@
 #include "host/scamper_host_do.h"
 
 #include "utils.h"
-
 #define OPT_PPS             0x00000001 /* p: */
 #define OPT_OUTFILE         0x00000002 /* o: */
 #define OPT_OPTION          0x00000004 /* O: */
@@ -1709,10 +1708,62 @@ static void cleanup(void)
   return;
 }
 
+#ifdef _WIN32
+
+# include <tchar.h>
+
+_TCHAR * get_system_directory()
+{
+    _TCHAR empty;
+    
+    UINT len = GetSystemDirectory(&empty, 1);
+    if (len == 0) goto error;
+
+    _TCHAR * buffer = malloc(sizeof(_TCHAR) * len);
+    len = GetSystemDirectory(buffer, len);
+    if (len == 0) goto error;
+    else return buffer;
+
+error:
+    fprintf(stderr, "Error in GetSystemDirectory %x\n", GetLastError());
+    return NULL;
+}
+
+BOOL load_npcap_dll()
+{
+    _TCHAR * system_directory = get_system_directory();
+    if (system_directory == NULL) return FALSE;
+
+    UINT length_npcap_dir = _tcslen(system_directory) + _tcslen(_T("\\Npcap")) + 1;
+    _TCHAR * npcap_dir = malloc(sizeof(_TCHAR) * length_npcap_dir);
+    _tcscpy(npcap_dir, system_directory);
+
+    // We don't need the system directory buffer anymore.
+    free(system_directory);
+
+    // We need to add Npcap directory
+    _tcscat_s(npcap_dir, length_npcap_dir, _T("\\Npcap"));
+    BOOL ret = SetDllDirectory(npcap_dir) != 0 ? TRUE : FALSE;
+
+    if (ret == FALSE) {
+	fprintf(stderr, "Error in SetDllDirectory: %x\n", GetLastError());
+    }
+    free(npcap_dir);
+    return ret;
+}
+
+#endif
+
 int main(int argc, char *argv[])
 {
   int i;
 
+#ifdef _WIN32
+  if (load_npcap_dll() == FALSE) {
+      fprintf(stderr, "Cannot load npcap");
+      return 1;
+  }
+#endif
 #ifndef _WIN32
   struct sigaction si_sa;
 #endif

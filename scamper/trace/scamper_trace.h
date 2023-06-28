@@ -53,10 +53,11 @@ struct scamper_addr;
 #define SCAMPER_TRACE_FLAG_IGNORETTLDST 0x08 /* ignore ttl exp. rx f/ dst */
 #define SCAMPER_TRACE_FLAG_DOUBLETREE 0x10   /* doubletree */
 #define SCAMPER_TRACE_FLAG_ICMPCSUMDP 0x20   /* icmp csum found in dport */
-#define SCAMPER_TRACE_FLAG_CONSTPAYLOAD 0x40 /* do not hack payload for csum \
-                                              */
-#define SCAMPER_TRACE_FLAG_RXERR 0x80        /* used rxerr socket */
-#define SCAMPER_TRACE_FLAG_PTR 0x100         /* do ptr lookups */
+#define SCAMPER_TRACE_FLAG_CONSTPAYLOAD                               \
+  0x40                                /* do not hack payload for csum \
+                                       */
+#define SCAMPER_TRACE_FLAG_RXERR 0x80 /* used rxerr socket */
+#define SCAMPER_TRACE_FLAG_PTR 0x100  /* do ptr lookups */
 
 #define SCAMPER_TRACE_TYPE_ICMP_ECHO 0x01       /* ICMP echo requests */
 #define SCAMPER_TRACE_TYPE_UDP 0x02             /* UDP to unused ports */

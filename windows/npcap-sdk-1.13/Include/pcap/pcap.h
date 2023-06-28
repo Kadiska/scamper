@@ -310,9 +310,10 @@ struct pcap_if {
 #define PCAP_IF_CONNECTION_STATUS 0x00000030           /* connection status: */
 #define PCAP_IF_CONNECTION_STATUS_UNKNOWN 0x00000000   /* unknown */
 #define PCAP_IF_CONNECTION_STATUS_CONNECTED 0x00000010 /* connected */
-#define PCAP_IF_CONNECTION_STATUS_DISCONNECTED 0x00000020   /* disconnected */
-#define PCAP_IF_CONNECTION_STATUS_NOT_APPLICABLE 0x00000030 /* not applicable \
-                                                             */
+#define PCAP_IF_CONNECTION_STATUS_DISCONNECTED 0x00000020 /* disconnected */
+#define PCAP_IF_CONNECTION_STATUS_NOT_APPLICABLE \
+  0x00000030 /* not applicable                   \
+              */
 
 /*
  * Representation of an interface address.

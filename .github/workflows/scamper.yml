@@ -15,8 +15,18 @@ on:
 
 jobs:
 
-  debian:
+  linter:
+    runs-on: ubuntu-latest
 
+    steps:
+    - uses: actions/checkout@v3
+
+    - uses: jidicula/clang-format-action@v4.11.0
+      with:
+        clang-format-version: '11'
+
+  debian:
+    needs: linter
     runs-on: ubuntu-latest
     container: debian:bullseye
 
@@ -58,6 +68,7 @@ jobs:
           retention-days: 10
 
   windows:
+    needs: linter
     runs-on: windows-latest
 
     strategy:

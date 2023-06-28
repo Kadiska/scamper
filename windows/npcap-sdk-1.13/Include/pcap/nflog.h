@@ -89,12 +89,14 @@ typedef struct nflog_timestamp {
        group) */
 #define NFULA_HWADDR 8  /* nflog_hwaddr_t for hardware address */
 #define NFULA_PAYLOAD 9 /* packet payload */
-#define NFULA_PREFIX 10 /* text string - null-terminated, count includes NUL \
-                         */
+#define NFULA_PREFIX                                                      \
+  10                 /* text string - null-terminated, count includes NUL \
+                      */
 #define NFULA_UID 11 /* UID owning socket on which packet was sent/received */
 #define NFULA_SEQ 12 /* sequence number of packets on this NFLOG socket */
-#define NFULA_SEQ_GLOBAL 13 /* sequence number of pakets on all NFLOG sockets \
-                             */
+#define NFULA_SEQ_GLOBAL                                               \
+  13                 /* sequence number of pakets on all NFLOG sockets \
+                      */
 #define NFULA_GID 14 /* GID owning socket on which packet was sent/received */
 #define NFULA_HWTYPE 15   /* ARPHRD_ type of skbuff's device */
 #define NFULA_HWHEADER 16 /* skbuff's MAC-layer header */

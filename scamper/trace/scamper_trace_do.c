@@ -71,8 +71,9 @@
 #define SCAMPER_DO_TRACE_ATTEMPTS_MAX 20
 
 #define SCAMPER_DO_TRACE_DPORT_MIN 1
-#define SCAMPER_DO_TRACE_DPORT_DEF (32768 + 666 + 1) /* probe_id starts at 0 \
-                                                      */
+#define SCAMPER_DO_TRACE_DPORT_DEF          \
+  (32768 + 666 + 1) /* probe_id starts at 0 \
+                     */
 #define SCAMPER_DO_TRACE_DPORT_MAX 65535
 
 #define SCAMPER_DO_TRACE_FIRSTHOP_MIN 1

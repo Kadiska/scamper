@@ -36,13 +36,12 @@
  * descr:    optional free-form text describing the list somehow.
  * refcnt:   a count of references to an instance of this struct
  */
-typedef struct scamper_list
-{
-  uint32_t  id;
-  char     *name;
-  char     *descr;
-  char     *monitor;
-  int       refcnt;
+typedef struct scamper_list {
+  uint32_t id;
+  char *name;
+  char *descr;
+  char *monitor;
+  int refcnt;
 } scamper_list_t;
 
 /*
@@ -57,14 +56,13 @@ typedef struct scamper_list
  * hostname:   optional record of the hostname at the beginning of the cycle.
  * refcnt:     a count of references to an instance of this struct
  */
-typedef struct scamper_cycle
-{
+typedef struct scamper_cycle {
   scamper_list_t *list;
-  uint32_t        id;
-  uint32_t        start_time;
-  uint32_t        stop_time;
-  char           *hostname;
-  int             refcnt;
+  uint32_t id;
+  uint32_t start_time;
+  uint32_t stop_time;
+  char *hostname;
+  int refcnt;
 } scamper_cycle_t;
 
 /*
@@ -75,7 +73,7 @@ typedef struct scamper_cycle
  * so that it is allocated just the once.
  */
 scamper_list_t *scamper_list_alloc(const uint32_t id, const char *name,
-				   const char *descr, const char *monitor);
+                                   const char *descr, const char *monitor);
 scamper_list_t *scamper_list_use(scamper_list_t *list);
 void scamper_list_free(scamper_list_t *list);
 int scamper_list_cmp(const scamper_list_t *a, const scamper_list_t *b);

@@ -42,8 +42,7 @@ int scamper_dlhdr_get(scamper_dlhdr_t *dlhdr);
  * this struct holds appropriate layer-2 headers to prepend on a packet
  * to be transmitted with a datalink socket.
  */
-struct scamper_dlhdr
-{
+struct scamper_dlhdr {
   /*
    * parameters supplied on input:
    *  - final destination of our packet,
@@ -55,22 +54,22 @@ struct scamper_dlhdr
    */
   scamper_addr_t *dst;
   scamper_addr_t *gw;
-  int             ifindex;
-  int             txtype;
-  void          (*cb)(scamper_dlhdr_t *);
-  void           *param;
+  int ifindex;
+  int txtype;
+  void (*cb)(scamper_dlhdr_t *);
+  void *param;
 
   /*
    * result of dlhdr process:
    *  - if there was no error (zero) or not,
    *  - the header to include, and its length, if any.
    */
-  int             error;
-  uint8_t        *buf;
-  uint16_t        len;
+  int error;
+  uint8_t *buf;
+  uint16_t len;
 
   /* a pointer that is used internally by the dlhdr code */
-  void           *internal;
+  void *internal;
 };
 #endif
 

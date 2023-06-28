@@ -31,18 +31,16 @@
 #ifndef MJL_PREFIXTREE_H
 #define MJL_PREFIXTREE_H
 
-typedef struct prefix4
-{
+typedef struct prefix4 {
   struct in_addr net;
-  uint8_t        len;
-  void          *ptr;
+  uint8_t len;
+  void *ptr;
 } prefix4_t;
 
-typedef struct prefix6
-{
+typedef struct prefix6 {
   struct in6_addr net;
-  uint8_t         len;
-  void           *ptr;
+  uint8_t len;
+  void *ptr;
 } prefix6_t;
 
 typedef struct prefixtree prefixtree_t;
@@ -70,42 +68,42 @@ prefixtree_node_t *prefixtree_insert4(prefixtree_t *tree, prefix4_t *item);
 prefixtree_node_t *prefixtree_insert6(prefixtree_t *tree, prefix6_t *item);
 #else
 prefixtree_node_t *prefixtree_insert4_dm(prefixtree_t *tree, prefix4_t *item,
-					 const char *file, const int line);
+                                         const char *file, const int line);
 prefixtree_node_t *prefixtree_insert6_dm(prefixtree_t *tree, prefix6_t *item,
-					 const char *file, const int line);
-#define prefixtree_insert4(tree,item) prefixtree_insert4_dm((tree), (item), \
-							    __FILE__, __LINE__)
-#define prefixtree_insert6(tree,item) prefixtree_insert6_dm((tree), (item), \
-							    __FILE__, __LINE__)
+                                         const char *file, const int line);
+#define prefixtree_insert4(tree, item) \
+  prefixtree_insert4_dm((tree), (item), __FILE__, __LINE__)
+#define prefixtree_insert6(tree, item) \
+  prefixtree_insert6_dm((tree), (item), __FILE__, __LINE__)
 #endif
 
 prefix4_t *prefixtree_find_ip4(const prefixtree_t *tree,
-			       const struct in_addr *ip4);
+                               const struct in_addr *ip4);
 prefix6_t *prefixtree_find_ip6(const prefixtree_t *tree,
-			       const struct in6_addr *ip6);
+                               const struct in6_addr *ip6);
 
 prefix4_t *prefixtree_find_best4(const prefixtree_t *tree,
-				 const prefix4_t *item);
+                                 const prefix4_t *item);
 prefix6_t *prefixtree_find_best6(const prefixtree_t *tree,
-				 const prefix6_t *item);
+                                 const prefix6_t *item);
 
 prefix4_t *prefixtree_find_exact4(const prefixtree_t *tree,
-				  const struct in_addr *net, uint8_t len);
+                                  const struct in_addr *net, uint8_t len);
 prefix6_t *prefixtree_find_exact6(const prefixtree_t *tree,
-				  const struct in6_addr *net, uint8_t len);
+                                  const struct in6_addr *net, uint8_t len);
 
 #ifndef DMALLOC
 prefix4_t *prefix4_alloc(struct in_addr *net, uint8_t len, void *ptr);
 prefix6_t *prefix6_alloc(struct in6_addr *net, uint8_t len, void *ptr);
 #else
 prefix4_t *prefix4_alloc_dm(struct in_addr *net, uint8_t len, void *ptr,
-			    const char *file, const int line);
+                            const char *file, const int line);
 prefix6_t *prefix6_alloc_dm(struct in6_addr *net, uint8_t len, void *ptr,
-			    const char *file, const int line);
-#define prefix4_alloc(net,len,ptr) prefix4_alloc_dm((net),(len),(ptr), \
-						    __FILE__, __LINE__)
-#define prefix6_alloc(net,len,ptr) prefix6_alloc_dm((net),(len),(ptr), \
-						    __FILE__, __LINE__)
+                            const char *file, const int line);
+#define prefix4_alloc(net, len, ptr) \
+  prefix4_alloc_dm((net), (len), (ptr), __FILE__, __LINE__)
+#define prefix6_alloc(net, len, ptr) \
+  prefix6_alloc_dm((net), (len), (ptr), __FILE__, __LINE__)
 #endif
 
 void prefix4_free(prefix4_t *pfx);
@@ -118,10 +116,10 @@ int prefix6_cmp(const prefix6_t *a, const prefix6_t *b);
 prefix4_t *prefix4_dup(const prefix4_t *item);
 prefix6_t *prefix6_dup(const prefix6_t *item);
 #else
-prefix4_t *prefix4_dup_dm(const prefix4_t *item,
-			  const char *file, const int line);
-prefix6_t *prefix6_dup_dm(const prefix6_t *item,
-			  const char *file, const int line);
+prefix4_t *prefix4_dup_dm(const prefix4_t *item, const char *file,
+                          const int line);
+prefix6_t *prefix6_dup_dm(const prefix6_t *item, const char *file,
+                          const int line);
 #define prefix4_dup(item) prefix4_dup_dm((item), __FILE__, __LINE__)
 #define prefix6_dup(item) prefix6_dup_dm((item), __FILE__, __LINE__)
 #endif

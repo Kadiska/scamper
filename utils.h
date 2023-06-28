@@ -35,19 +35,19 @@ int timeval_cmp(const struct timeval *a, const struct timeval *b);
 
 int timeval_diff_ms(const struct timeval *a, const struct timeval *b);
 int timeval_diff_us(const struct timeval *a, const struct timeval *b);
-void timeval_diff_tv(struct timeval *rtt,
-		     const struct timeval *from, const struct timeval *to);
+void timeval_diff_tv(struct timeval *rtt, const struct timeval *from,
+                     const struct timeval *to);
 
 void timeval_add_cs(struct timeval *out, const struct timeval *in, int cs);
 void timeval_add_ms(struct timeval *out, const struct timeval *in, int ms);
 void timeval_add_us(struct timeval *out, const struct timeval *in, int us);
 void timeval_add_tv(struct timeval *tv, const struct timeval *add);
 void timeval_add_tv3(struct timeval *out, const struct timeval *a,
-		     const struct timeval *b);
+                     const struct timeval *b);
 void timeval_add_s(struct timeval *out, const struct timeval *in, int s);
 void timeval_sub_us(struct timeval *out, const struct timeval *in, int us);
 void timeval_cpy(struct timeval *dst, const struct timeval *src);
-int timeval_inrange_us(const struct timeval *a,const struct timeval *b,int c);
+int timeval_inrange_us(const struct timeval *a, const struct timeval *b, int c);
 char *timeval_tostr_us(const struct timeval *rtt, char *str, size_t len);
 
 void gettimeofday_wrap(struct timeval *tv);
@@ -65,16 +65,17 @@ int stat_mtime(const char *filename, time_t *mtime);
 void *malloc_zero(const size_t size);
 #endif
 void *memdup(const void *ptr, const size_t len);
-int   realloc_wrap(void **ptr, size_t len);
+int realloc_wrap(void **ptr, size_t len);
 #else
-int   realloc_wrap_dm(void **ptr,size_t len, const char *file,const int line);
+int realloc_wrap_dm(void **ptr, size_t len, const char *file, const int line);
 void *malloc_zero_dm(const size_t size, const char *file, const int line);
-#define realloc_wrap(ptr, len) realloc_wrap_dm((ptr),(len), __FILE__,__LINE__)
+#define realloc_wrap(ptr, len) realloc_wrap_dm((ptr), (len), __FILE__, __LINE__)
 #define malloc_zero(size) malloc_zero_dm((size), __FILE__, __LINE__)
 #define memdup(ptr, len) memcpy(malloc(len), ptr, len)
 #endif
 
-void mem_concat(void *dst,const void *src,size_t len,size_t *off,size_t size);
+void mem_concat(void *dst, const void *src, size_t len, size_t *off,
+                size_t size);
 
 typedef int (*array_cmp_t)(const void *va, const void *vb);
 void *array_find(void **a, int nmemb, const void *item, array_cmp_t cmp);
@@ -84,19 +85,19 @@ void array_qsort(void **a, int n, array_cmp_t cmp);
 
 #ifndef DMALLOC
 int array_insert(void ***a, int *nmemb, void *item, array_cmp_t cmp);
-int array_insert_gb(void ***a, int *nmemb, int *mmemb, int growby,
-		    void *item, array_cmp_t cmp);
+int array_insert_gb(void ***a, int *nmemb, int *mmemb, int growby, void *item,
+                    array_cmp_t cmp);
 #else
 int array_insert_dm(void ***a, int *nmemb, void *item, array_cmp_t cmp,
-		    const char *file, const int line);
+                    const char *file, const int line);
 int array_insert_gb_dm(void ***a, int *nmemb, int *mmemb, int growby,
-		       void *item, array_cmp_t cmp,
-		       const char *file, const int line);
+                       void *item, array_cmp_t cmp, const char *file,
+                       const int line);
 #define array_insert(a, nmemb, item, cmp) \
   array_insert_dm((a), (nmemb), (item), (cmp), __FILE__, __LINE__)
-#define array_insert_gb(a, nmemb, mmemb, growby, item, cmp) \
-  array_insert_gb_dm((a), (nmemb), (mmemb), (growby), (item), (cmp), \
-		     __FILE__, __LINE__)
+#define array_insert_gb(a, nmemb, mmemb, growby, item, cmp)                    \
+  array_insert_gb_dm((a), (nmemb), (mmemb), (growby), (item), (cmp), __FILE__, \
+                     __LINE__)
 #endif
 
 /*
@@ -114,8 +115,8 @@ const char *addr_tostr(int af, const void *addr, char *buf, size_t len);
  * Functions for dealing with sockaddr addresses
  */
 
-int sockaddr_compose(struct sockaddr *sa,
-		     const int af, const void *addr, const int port);
+int sockaddr_compose(struct sockaddr *sa, const int af, const void *addr,
+                     const int port);
 int sockaddr_compose_un(struct sockaddr *sa, const char *name);
 int sockaddr_compose_str(struct sockaddr *sa, const char *ip, const int port);
 int sockaddr_len(const struct sockaddr *sa);
@@ -135,26 +136,26 @@ int fcntl_unset(const int fd, const int flags);
 char *string_nextword(char *str);
 char *string_nullterm(char *str, const char *delim, char **next);
 char *string_nullterm_char(char *str, const char delim, char **next);
-int   string_isprint(const char *str, const size_t len);
-int   string_isalpha(const char *str);
-int   string_isnumber(const char *str);
-int   string_isdigit(const char *str);
-int   string_isalnum(const char *str);
-int   string_isfloat(const char *str);
+int string_isprint(const char *str, const size_t len);
+int string_isalpha(const char *str);
+int string_isnumber(const char *str);
+int string_isdigit(const char *str);
+int string_isalnum(const char *str);
+int string_isfloat(const char *str);
 char *string_toupper(char *buf, size_t len, const char *in);
-int   string_tolong(const char *str, long *l);
-int   string_tollong(const char *str, long long *ll);
+int string_tolong(const char *str, long *l);
+int string_tollong(const char *str, long long *ll);
 char *string_lastof(char *str, const char *delim);
 char *string_lastof_char(char *str, const char delim);
 char *string_firstof_char(char *str, const char delim);
 char *string_concat(char *str, size_t len, size_t *off, const char *fs, ...);
 const char *string_findlc(const char *str, const char *find);
-int   string_addrport(const char *in, char **addr, int *port);
+int string_addrport(const char *in, char **addr, int *port);
 
 #ifndef NDEBUG
-int   string_isdash(const char *str);
+int string_isdash(const char *str);
 #else
-#define string_isdash(str)((str)[0] == '-' && (str)[1] == '\0') 
+#define string_isdash(str) ((str)[0] == '-' && (str)[1] == '\0')
 #endif
 
 /* escape a string for json output */
@@ -222,8 +223,8 @@ int min_array(int *array, int len);
  */
 int uuencode(const uint8_t *in, size_t ilen, uint8_t **out, size_t *olen);
 size_t uuencode_len(size_t ilen, size_t *complete, size_t *leftover);
-size_t uuencode_bytes(const uint8_t *in, size_t len, size_t *off,
-		      uint8_t *out, size_t olen);
+size_t uuencode_bytes(const uint8_t *in, size_t len, size_t *off, uint8_t *out,
+                      size_t olen);
 void *uudecode(const char *in, size_t len);
 int uudecode_line(const char *in, size_t ilen, uint8_t *out, size_t *olen);
 

@@ -24,6 +24,6 @@
 #define __SCAMPER_TBIT_JSON_H
 
 int scamper_file_json_tbit_write(const scamper_file_t *sf,
-				 const struct scamper_tbit *tbit);
+                                 const struct scamper_tbit *tbit);
 
 #endif

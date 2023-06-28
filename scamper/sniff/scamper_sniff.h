@@ -24,36 +24,34 @@
 #ifndef __SCAMPER_SNIFF_H
 #define __SCAMPER_SNIFF_H
 
-#define SCAMPER_SNIFF_STOP_NONE           0x00
-#define SCAMPER_SNIFF_STOP_ERROR          0x01
-#define SCAMPER_SNIFF_STOP_LIMIT_TIME     0x02
-#define SCAMPER_SNIFF_STOP_LIMIT_PKTC     0x03
-#define SCAMPER_SNIFF_STOP_HALTED         0x04
+#define SCAMPER_SNIFF_STOP_NONE 0x00
+#define SCAMPER_SNIFF_STOP_ERROR 0x01
+#define SCAMPER_SNIFF_STOP_LIMIT_TIME 0x02
+#define SCAMPER_SNIFF_STOP_LIMIT_PKTC 0x03
+#define SCAMPER_SNIFF_STOP_HALTED 0x04
 
-typedef struct scamper_sniff_pkt
-{
-  struct timeval        tv;
-  uint8_t              *data;
-  uint16_t              len;
+typedef struct scamper_sniff_pkt {
+  struct timeval tv;
+  uint8_t *data;
+  uint16_t len;
 } scamper_sniff_pkt_t;
 
-typedef struct scamper_sniff
-{
-  scamper_list_t       *list;
-  scamper_cycle_t      *cycle;
-  uint32_t              userid;
+typedef struct scamper_sniff {
+  scamper_list_t *list;
+  scamper_cycle_t *cycle;
+  uint32_t userid;
 
-  struct timeval        start;
-  struct timeval        finish;
-  uint8_t               stop_reason;
-  uint32_t              limit_pktc;
-  uint16_t              limit_time;
+  struct timeval start;
+  struct timeval finish;
+  uint8_t stop_reason;
+  uint32_t limit_pktc;
+  uint16_t limit_time;
 
-  scamper_addr_t       *src;
-  uint16_t              icmpid;
+  scamper_addr_t *src;
+  uint16_t icmpid;
 
   scamper_sniff_pkt_t **pkts;
-  uint32_t              pktc;
+  uint32_t pktc;
 
 } scamper_sniff_t;
 
@@ -61,7 +59,7 @@ scamper_sniff_t *scamper_sniff_alloc(void);
 void scamper_sniff_free(scamper_sniff_t *);
 
 scamper_sniff_pkt_t *scamper_sniff_pkt_alloc(uint8_t *data, uint16_t len,
-					     struct timeval *tv);
+                                             struct timeval *tv);
 void scamper_sniff_pkt_free(scamper_sniff_pkt_t *pkt);
 
 int scamper_sniff_pkts_alloc(scamper_sniff_t *sniff, int pktc);

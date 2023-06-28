@@ -64,20 +64,20 @@ slist_node_t *slist_tail_push(slist_t *list, void *item);
 
 #ifdef DMALLOC
 slist_t *slist_alloc_dm(const char *file, const int line);
-slist_t *slist_dup_dm(slist_t *oldlist,const slist_foreach_t func,void *param,
-		      const char *file, const int line);
-slist_node_t *slist_head_push_dm(slist_t *list, void *item,
-				 const char *file, const int line);
-slist_node_t *slist_tail_push_dm(slist_t *list, void *item,
-				 const char *file, const int line);
+slist_t *slist_dup_dm(slist_t *oldlist, const slist_foreach_t func, void *param,
+                      const char *file, const int line);
+slist_node_t *slist_head_push_dm(slist_t *list, void *item, const char *file,
+                                 const int line);
+slist_node_t *slist_tail_push_dm(slist_t *list, void *item, const char *file,
+                                 const int line);
 
 #define slist_alloc() slist_alloc_dm(__FILE__, __LINE__)
-#define slist_dup(old,func,param) slist_dup_dm((old), (func), (param), \
-					    __FILE__, __LINE__)
-#define slist_head_push(list, item) slist_head_push_dm((list), (item), \
-						       __FILE__, __LINE__)
-#define slist_tail_push(list, item) slist_tail_push_dm((list), (item), \
-						       __FILE__, __LINE__)
+#define slist_dup(old, func, param) \
+  slist_dup_dm((old), (func), (param), __FILE__, __LINE__)
+#define slist_head_push(list, item) \
+  slist_head_push_dm((list), (item), __FILE__, __LINE__)
+#define slist_tail_push(list, item) \
+  slist_tail_push_dm((list), (item), __FILE__, __LINE__)
 #endif
 
 void slist_init(slist_t *list);
@@ -110,19 +110,19 @@ dlist_node_t *dlist_head_push(dlist_t *list, void *item);
 dlist_node_t *dlist_tail_push(dlist_t *list, void *item);
 #else
 dlist_t *dlist_alloc_dm(const char *file, const int line);
-dlist_t *dlist_dup_dm(dlist_t *oldlist,const dlist_foreach_t func,void *param,
-		      const char *file, const int line);
-dlist_node_t *dlist_node_alloc_dm(void *item,const char *file,const int line);
-dlist_node_t *dlist_head_push_dm(dlist_t *list, void *item,
-				 const char *file, const int line);
-dlist_node_t *dlist_tail_push_dm(dlist_t *list, void *item,
-				 const char *file, const int line);
+dlist_t *dlist_dup_dm(dlist_t *oldlist, const dlist_foreach_t func, void *param,
+                      const char *file, const int line);
+dlist_node_t *dlist_node_alloc_dm(void *item, const char *file, const int line);
+dlist_node_t *dlist_head_push_dm(dlist_t *list, void *item, const char *file,
+                                 const int line);
+dlist_node_t *dlist_tail_push_dm(dlist_t *list, void *item, const char *file,
+                                 const int line);
 #define dlist_alloc() dlist_alloc_dm(__FILE__, __LINE__)
 #define dlist_node_alloc(item) dlist_node_alloc_dm((item), __FILE__, __LINE__)
-#define dlist_head_push(list,item) dlist_head_push_dm((list), (item), \
-						      __FILE__, __LINE__)
-#define dlist_tail_push(list,item) dlist_tail_push_dm((list), (item), \
-						      __FILE__, __LINE__)
+#define dlist_head_push(list, item) \
+  dlist_head_push_dm((list), (item), __FILE__, __LINE__)
+#define dlist_tail_push(list, item) \
+  dlist_tail_push_dm((list), (item), __FILE__, __LINE__)
 #endif
 
 void dlist_init(dlist_t *list);
@@ -158,11 +158,11 @@ clist_t *clist_alloc(void);
 clist_node_t *clist_tail_push(clist_t *list, void *item);
 #else
 clist_t *clist_alloc_dm(const char *file, const int line);
-clist_node_t *clist_tail_push_dm(clist_t *list, void *item,
-				 const char *file, const int line);
+clist_node_t *clist_tail_push_dm(clist_t *list, void *item, const char *file,
+                                 const int line);
 #define clist_alloc() clist_alloc_dm(__FILE__, __LINE__)
-#define clist_tail_push(list,item) clist_tail_push_dm((list), (item), \
-						      __FILE__, __LINE__)
+#define clist_tail_push(list, item) \
+  clist_tail_push_dm((list), (item), __FILE__, __LINE__)
 #endif
 
 void clist_init(clist_t *list);

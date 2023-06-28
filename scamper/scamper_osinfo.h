@@ -21,24 +21,23 @@
  *
  */
 
-#define SCAMPER_OSINFO_OS_NULL     0
-#define SCAMPER_OSINFO_OS_FREEBSD  1
-#define SCAMPER_OSINFO_OS_OPENBSD  2
-#define SCAMPER_OSINFO_OS_NETBSD   3
-#define SCAMPER_OSINFO_OS_SUNOS    4
-#define SCAMPER_OSINFO_OS_LINUX    5
-#define SCAMPER_OSINFO_OS_DARWIN   6
-#define SCAMPER_OSINFO_OS_WINDOWS  7
+#define SCAMPER_OSINFO_OS_NULL 0
+#define SCAMPER_OSINFO_OS_FREEBSD 1
+#define SCAMPER_OSINFO_OS_OPENBSD 2
+#define SCAMPER_OSINFO_OS_NETBSD 3
+#define SCAMPER_OSINFO_OS_SUNOS 4
+#define SCAMPER_OSINFO_OS_LINUX 5
+#define SCAMPER_OSINFO_OS_DARWIN 6
+#define SCAMPER_OSINFO_OS_WINDOWS 7
 
-typedef struct scamper_osinfo
-{
+typedef struct scamper_osinfo {
   /* name of the OS, and an ID for it */
   char *os;
-  int   os_id;
+  int os_id;
 
   /* parse the OS version string into integers */
   long *os_rel;
-  int   os_rel_dots;
+  int os_rel_dots;
 
 } scamper_osinfo_t;
 

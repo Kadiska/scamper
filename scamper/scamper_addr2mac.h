@@ -25,7 +25,7 @@
 #ifndef __SCAMPER_ADDR2MAC_H
 #define __SCAMPER_ADDR2MAC_H
 
-scamper_addr_t *scamper_addr2mac_whohas(const int ifindex,scamper_addr_t *dst);
+scamper_addr_t *scamper_addr2mac_whohas(const int ifindex, scamper_addr_t *dst);
 int scamper_addr2mac_add(int ifindex, scamper_addr_t *ip, scamper_addr_t *mac);
 int scamper_addr2mac_init(void);
 void scamper_addr2mac_cleanup(void);

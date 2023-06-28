@@ -27,29 +27,29 @@
 #define __SCAMPER_LINEPOLL_H
 
 typedef struct scamper_linepoll scamper_linepoll_t;
-typedef int (*scamper_linepoll_handler_t)(void *param,uint8_t *buf,size_t len);
+typedef int (*scamper_linepoll_handler_t)(void *param, uint8_t *buf,
+                                          size_t len);
 
 int scamper_linepoll_handle(scamper_linepoll_t *lp, uint8_t *buf, size_t len);
 
 int scamper_linepoll_flush(scamper_linepoll_t *lp);
 
 void scamper_linepoll_update(scamper_linepoll_t *lp,
-			     scamper_linepoll_handler_t handler, void *param);
+                             scamper_linepoll_handler_t handler, void *param);
 
 void scamper_linepoll_free(scamper_linepoll_t *lp, int feedlastline);
 
 #ifndef DMALLOC
 scamper_linepoll_t *scamper_linepoll_alloc(scamper_linepoll_handler_t handler,
-					   void *param);
+                                           void *param);
 #endif
 
 #ifdef DMALLOC
 scamper_linepoll_t *scamper_linepoll_alloc_dm(scamper_linepoll_handler_t h,
-					      void *param, const char *file,
-					      const int line);
-#define scamper_linepoll_alloc(h, p)		\
-  scamper_linepoll_alloc_dm((h), (p),		\
-			    __FILE__, __LINE__)
+                                              void *param, const char *file,
+                                              const int line);
+#define scamper_linepoll_alloc(h, p) \
+  scamper_linepoll_alloc_dm((h), (p), __FILE__, __LINE__)
 #endif
 
 #endif

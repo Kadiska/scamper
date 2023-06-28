@@ -271,7 +271,7 @@ typedef unsigned short sa_family_t;
 #define fileno _fileno
 #define ftruncate _chsize
 #define lseek _lseek
-#define mkdir(dir,mode) _mkdir(dir)
+#define mkdir(dir, mode) _mkdir(dir)
 #define open _open
 #define read _read
 #define snprintf _snprintf
@@ -284,77 +284,67 @@ typedef unsigned short sa_family_t;
 #include <assert.h>
 
 #if defined(__sun__) || defined(_WIN32)
-struct ip6_ext
-{
+struct ip6_ext {
   uint8_t ip6e_nxt;
   uint8_t ip6e_len;
 };
 #endif
 
 #ifdef _WIN32
-struct ip
-{
-  uint8_t        ip_vhl;
-  uint8_t        ip_tos;
-  uint16_t       ip_len;
-  uint16_t       ip_id;
-  uint16_t       ip_off;
-  uint8_t        ip_ttl;
-  uint8_t        ip_p;
-  uint16_t       ip_sum;
+struct ip {
+  uint8_t ip_vhl;
+  uint8_t ip_tos;
+  uint16_t ip_len;
+  uint16_t ip_id;
+  uint16_t ip_off;
+  uint8_t ip_ttl;
+  uint8_t ip_p;
+  uint16_t ip_sum;
   struct in_addr ip_src;
   struct in_addr ip_dst;
 };
-struct ip6_hdr
-{
-  union
-  {
-    struct ip6_hdrctl
-    {
+struct ip6_hdr {
+  union {
+    struct ip6_hdrctl {
       uint32_t flow;
       uint16_t plen;
-      uint8_t  nxt;
-      uint8_t  hlim;
+      uint8_t nxt;
+      uint8_t hlim;
     } hdr;
     uint8_t vfc;
   } ip6un;
   struct in6_addr ip6_src;
   struct in6_addr ip6_dst;
 };
-struct ip6_frag
-{
-  uint8_t  ip6f_nxt;
-  uint8_t  ip6f_reserved;
+struct ip6_frag {
+  uint8_t ip6f_nxt;
+  uint8_t ip6f_reserved;
   uint16_t ip6f_offlg;
   uint32_t ip6f_ident;
 };
-struct icmp
-{
-  uint8_t   icmp_type;
-  uint8_t   icmp_code;
-  uint16_t  icmp_cksum;
+struct icmp {
+  uint8_t icmp_type;
+  uint8_t icmp_code;
+  uint16_t icmp_cksum;
   union {
-	  uint8_t pptr;
-	  struct idseq {
-		  uint16_t id;
-		  uint16_t seq;
-	  } idseq;
+    uint8_t pptr;
+    struct idseq {
+      uint16_t id;
+      uint16_t seq;
+    } idseq;
   } icmpun;
   struct ip icmp_ip;
 };
-struct icmp6_hdr
-{
-  uint8_t  icmp6_type;
-  uint8_t  icmp6_code;
+struct icmp6_hdr {
+  uint8_t icmp6_type;
+  uint8_t icmp6_code;
   uint16_t icmp6_cksum;
-  union
-  {
+  union {
     uint32_t data32[0];
     uint16_t data16[1];
   } icmp6un;
 };
-struct udphdr
-{
+struct udphdr {
   uint16_t uh_sport;
   uint16_t uh_dport;
   uint16_t uh_ulen;
@@ -365,118 +355,116 @@ struct tcphdr {
   uint16_t th_dport;
   uint32_t th_seq;
   uint32_t th_ack;
-  uint8_t  th_offx2;
-  uint8_t  th_flags;
+  uint8_t th_offx2;
+  uint8_t th_flags;
   uint16_t th_win;
   uint16_t th_sum;
   uint16_t th_urp;
 };
-struct iovec
-{
-  void   *iov_base;
-  size_t  iov_len;
+struct iovec {
+  void *iov_base;
+  size_t iov_len;
 };
-#define icmp_id      icmpun.idseq.id
-#define icmp_seq     icmpun.idseq.seq
+#define icmp_id icmpun.idseq.id
+#define icmp_seq icmpun.idseq.seq
 #define icmp_nextmtu icmpun.idseq.seq
-#define icmp_pptr    icmpun.pptr
-#define ip6_vfc      ip6un.vfc
-#define ip6_flow     ip6un.hdr.flow
-#define ip6_plen     ip6un.hdr.plen
-#define ip6_nxt      ip6un.hdr.nxt
-#define ip6_hlim     ip6un.hdr.hlim
+#define icmp_pptr icmpun.pptr
+#define ip6_vfc ip6un.vfc
+#define ip6_flow ip6un.hdr.flow
+#define ip6_plen ip6un.hdr.plen
+#define ip6_nxt ip6un.hdr.nxt
+#define ip6_hlim ip6un.hdr.hlim
 #define icmp6_data32 icmp6un.data32
-#define icmp6_mtu    icmp6un.data32[0]
-#define icmp6_id     icmp6un.data16[0]
-#define icmp6_seq    icmp6un.data16[1]
+#define icmp6_mtu icmp6un.data32[0]
+#define icmp6_id icmp6un.data16[0]
+#define icmp6_seq icmp6un.data16[1]
 #endif
 
 #if defined(__sun__)
-# define s6_addr32 _S6_un._S6_u32
+#define s6_addr32 _S6_un._S6_u32
 #elif !defined(s6_addr32)
-# define s6_addr32 __u6_addr.__u6_addr32
+#define s6_addr32 __u6_addr.__u6_addr32
 #endif
 
 #if defined(__linux__)
 #if !defined(HAVE_STRUCT_NLMSGHDR)
-struct nlmsghdr
-{
-  uint32_t        nlmsg_len;
-  uint16_t        nlmsg_type;
-  uint16_t        nlmsg_flags;
-  uint32_t        nlmsg_seq;
-  uint32_t        nlmsg_pid;
+struct nlmsghdr {
+  uint32_t nlmsg_len;
+  uint16_t nlmsg_type;
+  uint16_t nlmsg_flags;
+  uint32_t nlmsg_seq;
+  uint32_t nlmsg_pid;
 };
 #endif
 
 #if !defined(HAVE_STRUCT_NLMSGERR)
-struct nlmsgerr
-{
-  int             error;
+struct nlmsgerr {
+  int error;
   struct nlmsghdr msg;
 };
 #endif
 
 #if !defined(HAVE_STRUCT_SOCKADDR_NL)
-struct sockaddr_nl
-{
-  sa_family_t     nl_family;
-  unsigned short  nl_pad;
-  uint32_t        nl_pid;
-  uint32_t        nl_groups;
+struct sockaddr_nl {
+  sa_family_t nl_family;
+  unsigned short nl_pad;
+  uint32_t nl_pid;
+  uint32_t nl_groups;
 };
 #endif
 
 #ifndef NLMSG_ERROR
-#define NLMSG_ERROR         0x2
+#define NLMSG_ERROR 0x2
 #endif
 
 #ifndef NLMSG_DONE
-#define NLMSG_DONE          0x3
+#define NLMSG_DONE 0x3
 #endif
 
 #ifndef NLMSG_ALIGNTO
-#define NLMSG_ALIGNTO       4
+#define NLMSG_ALIGNTO 4
 #endif
 
 #ifndef NLMSG_ALIGN
-#define NLMSG_ALIGN(len)    (((len)+NLMSG_ALIGNTO-1) & ~(NLMSG_ALIGNTO-1))
+#define NLMSG_ALIGN(len) (((len) + NLMSG_ALIGNTO - 1) & ~(NLMSG_ALIGNTO - 1))
 #endif
 
 #ifndef NLMSG_LENGTH
-#define NLMSG_LENGTH(len)   ((len)+NLMSG_ALIGN(sizeof(struct nlmsghdr)))
+#define NLMSG_LENGTH(len) ((len) + NLMSG_ALIGN(sizeof(struct nlmsghdr)))
 #endif
 
 #ifndef NLMSG_DATA
-#define NLMSG_DATA(nlh)     ((void*)(((char*)nlh) + NLMSG_LENGTH(0)))
+#define NLMSG_DATA(nlh) ((void *)(((char *)nlh) + NLMSG_LENGTH(0)))
 #endif
 
 #ifndef NLMSG_NEXT
-#define NLMSG_NEXT(nlh,len) ((len) -= NLMSG_ALIGN((nlh)->nlmsg_len), \
-                             (struct nlmsghdr*)(((char*)(nlh)) + NLMSG_ALIGN((nlh)->nlmsg_len)))
+#define NLMSG_NEXT(nlh, len)               \
+  ((len) -= NLMSG_ALIGN((nlh)->nlmsg_len), \
+   (struct nlmsghdr *)(((char *)(nlh)) + NLMSG_ALIGN((nlh)->nlmsg_len)))
 #endif
 
 #ifndef NLMSG_OK
-#define NLMSG_OK(nlh,len)   ((len) > 0 && (nlh)->nlmsg_len >= sizeof(struct nlmsghdr) && \
-                             (nlh)->nlmsg_len <= (len))
+#define NLMSG_OK(nlh, len)                                     \
+  ((len) > 0 && (nlh)->nlmsg_len >= sizeof(struct nlmsghdr) && \
+   (nlh)->nlmsg_len <= (len))
 #endif
 
 #ifndef NLM_F_REQUEST
-#define NLM_F_REQUEST   1
+#define NLM_F_REQUEST 1
 #endif
 
 #ifndef NLM_F_ROOT
-#define NLM_F_ROOT      0x100
+#define NLM_F_ROOT 0x100
 #endif
 
 #ifndef NLM_F_MATCH
-#define NLM_F_MATCH     0x200
+#define NLM_F_MATCH 0x200
 #endif
 
 #endif
 
 #ifndef S_ISREG
-#define S_ISREG(m) (((m) & S_IFREG) && ((m) & (S_IFIFO|S_IFCHR|S_IFDIR)) == 0)
+#define S_ISREG(m) (((m)&S_IFREG) && ((m) & (S_IFIFO | S_IFCHR | S_IFDIR)) == 0)
 #endif
 
 #ifndef ETHER_ADDR_LEN
@@ -544,7 +532,7 @@ struct sockaddr_nl
 #endif
 
 #ifndef IPTOS_ECN_MASK
-#define	IPTOS_ECN_MASK 0x03
+#define IPTOS_ECN_MASK 0x03
 #endif
 
 #ifndef TH_FIN
@@ -580,7 +568,7 @@ struct sockaddr_nl
 #endif
 
 #ifndef ICMP_MINLEN
-#define	ICMP_MINLEN 8
+#define ICMP_MINLEN 8
 #endif
 
 #ifndef ICMP_UNREACH
@@ -740,17 +728,17 @@ struct sockaddr_nl
 #endif
 
 #ifndef SEQ_LT
-#define SEQ_LT(a,b) ((int)((a)-(b)) < 0)
+#define SEQ_LT(a, b) ((int)((a) - (b)) < 0)
 #endif
 
 #ifndef SEQ_LEQ
-#define SEQ_LEQ(a,b) ((int)((a)-(b)) <= 0)
+#define SEQ_LEQ(a, b) ((int)((a) - (b)) <= 0)
 #endif
 
 #ifndef SEQ_GT
-#define SEQ_GT(a,b) ((int)((a)-(b)) > 0)
+#define SEQ_GT(a, b) ((int)((a) - (b)) > 0)
 #endif
 
 #ifndef SEQ_GEQ
-#define SEQ_GEQ(a,b) ((int)((a)-(b)) >= 0)
+#define SEQ_GEQ(a, b) ((int)((a) - (b)) >= 0)
 #endif

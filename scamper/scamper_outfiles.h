@@ -45,7 +45,7 @@ scamper_outfile_t *scamper_outfiles_get(const char *alias);
 void scamper_outfiles_swap(scamper_outfile_t *a, scamper_outfile_t *b);
 
 void scamper_outfiles_foreach(void *p,
-			      int (*func)(void *p, scamper_outfile_t *sof));
+                              int (*func)(void *p, scamper_outfile_t *sof));
 
 int scamper_outfiles_init(char *def_filename, char *def_type);
 void scamper_outfiles_cleanup(void);

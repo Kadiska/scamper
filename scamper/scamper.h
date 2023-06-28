@@ -26,19 +26,19 @@
 #ifndef __SCAMPER_H
 #define __SCAMPER_H
 
-#define SCAMPER_OPTION_PPS_MIN       1
-#define SCAMPER_OPTION_PPS_DEF       20
-#define SCAMPER_OPTION_PPS_MAX       10000
+#define SCAMPER_OPTION_PPS_MIN 1
+#define SCAMPER_OPTION_PPS_DEF 20
+#define SCAMPER_OPTION_PPS_MAX 10000
 int scamper_option_pps_get(void);
 int scamper_option_pps_set(const int pps);
 
-#define SCAMPER_OPTION_WINDOW_MIN    0
-#define SCAMPER_OPTION_WINDOW_DEF    0
-#define SCAMPER_OPTION_WINDOW_MAX    65535
+#define SCAMPER_OPTION_WINDOW_MIN 0
+#define SCAMPER_OPTION_WINDOW_DEF 0
+#define SCAMPER_OPTION_WINDOW_MAX 65535
 int scamper_option_window_get(void);
 int scamper_option_window_set(const int window);
 
-#define SCAMPER_OPTION_COMMAND_DEF   "trace"
+#define SCAMPER_OPTION_COMMAND_DEF "trace"
 const char *scamper_option_command_get(void);
 int scamper_option_command_set(const char *command);
 

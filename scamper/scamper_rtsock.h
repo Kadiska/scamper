@@ -34,7 +34,7 @@ typedef struct scamper_route scamper_route_t;
 
 #ifdef __SCAMPER_ADDR_H
 scamper_route_t *scamper_route_alloc(scamper_addr_t *dst, void *param,
-				     void (*cb)(scamper_route_t *rt));
+                                     void (*cb)(scamper_route_t *rt));
 #endif
 void scamper_route_free(scamper_route_t *route);
 
@@ -52,17 +52,16 @@ int scamper_rtsock_getroute(scamper_fd_t *fd, scamper_route_t *route);
 #endif
 
 #if defined(__SCAMPER_ADDR_H)
-struct scamper_route
-{
+struct scamper_route {
   /*
    * parameters supplied on input:
    *  - destination address to look up,
    *  - function to call back with a result,
    *  - parameter that the caller can set for its own use.
    */
-  scamper_addr_t  *dst;
-  void           (*cb)(scamper_route_t *rt);
-  void            *param;
+  scamper_addr_t *dst;
+  void (*cb)(scamper_route_t *rt);
+  void *param;
 
   /*
    * result of route lookup:
@@ -71,11 +70,11 @@ struct scamper_route
    *  - an error code if the lookup failed.
    */
   scamper_addr_t *gw;
-  int             ifindex;
-  int             error;
+  int ifindex;
+  int error;
 
   /* a pointer that is used internally by the routing code */
-  void           *internal;
+  void *internal;
 };
 #endif
 

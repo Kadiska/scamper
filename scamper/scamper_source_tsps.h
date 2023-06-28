@@ -25,7 +25,7 @@
 #define __SCAMPER_SOURCE_TSPS_H
 
 scamper_source_t *scamper_source_tsps_alloc(scamper_source_params_t *ssp,
-					    const char *filename);
+                                            const char *filename);
 
 const char *scamper_source_tsps_getfilename(const scamper_source_t *source);
 

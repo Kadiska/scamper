@@ -25,9 +25,9 @@
 #define __SCAMPER_SNIFF_WARTS_H
 
 int scamper_file_warts_sniff_write(const scamper_file_t *sf,
-				   const scamper_sniff_t *sniff);
+                                   const scamper_sniff_t *sniff);
 
 int scamper_file_warts_sniff_read(scamper_file_t *sf, const warts_hdr_t *hdr,
-				  scamper_sniff_t **sniff_out);
+                                  scamper_sniff_t **sniff_out);
 
 #endif

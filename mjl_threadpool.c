@@ -49,73 +49,64 @@
 
 #ifdef HAVE_PTHREAD
 typedef struct threadpool_task threadpool_task_t;
-struct threadpool_task
-{
-  threadpool_func_t  func;
-  void              *ptr;
+struct threadpool_task {
+  threadpool_func_t func;
+  void *ptr;
   threadpool_task_t *next;
-  int                onion;
+  int onion;
 };
 #endif
 
-struct threadpool
-{
-  long               threadc;
+struct threadpool {
+  long threadc;
 #ifdef HAVE_PTHREAD
-  pthread_t         *threads;
-  pthread_mutex_t    mutex;
-  pthread_cond_t     cond;
+  pthread_t *threads;
+  pthread_mutex_t mutex;
+  pthread_cond_t cond;
   threadpool_task_t *head;
   threadpool_task_t *tail;
-  int                stop;
-  unsigned int       flags;
+  int stop;
+  unsigned int flags;
 #endif
 };
 
 #define TP_FLAG_MUTEX 0x01
-#define TP_FLAG_COND  0x02
+#define TP_FLAG_COND 0x02
 
 #ifdef HAVE_PTHREAD
-static void *threadpool_run(void *ptr)
-{
+static void *threadpool_run(void *ptr) {
   threadpool_t *tp = (threadpool_t *)ptr;
   threadpool_task_t *task;
 
-  for(;;)
-    {
-      pthread_mutex_lock(&tp->mutex);
+  for (;;) {
+    pthread_mutex_lock(&tp->mutex);
 
-      /* pthread_cond_signal might wake up more than one thread */
-      while(tp->head == NULL && tp->stop == 0)
-	pthread_cond_wait(&tp->cond, &tp->mutex);
+    /* pthread_cond_signal might wake up more than one thread */
+    while (tp->head == NULL && tp->stop == 0)
+      pthread_cond_wait(&tp->cond, &tp->mutex);
 
-      /* if we've been told to stop, then stop if the task pool is empty */
-      if(tp->head == NULL && tp->stop != 0)
-	break;
+    /* if we've been told to stop, then stop if the task pool is empty */
+    if (tp->head == NULL && tp->stop != 0) break;
 
-      /* get the task to work on */
-      task = tp->head;
-      tp->head = tp->head->next;
-      if(tp->head == NULL)
-	tp->tail = NULL;
+    /* get the task to work on */
+    task = tp->head;
+    tp->head = tp->head->next;
+    if (tp->head == NULL) tp->tail = NULL;
 
-      if(task->onion == 0)
-	{
-	  /* release the lock to let another thread get some work */
-	  pthread_mutex_unlock(&tp->mutex);
-	  /* do the work */
-	  task->func(task->ptr);
-	}
-      else
-	{
-	  /* expand the onion */
-	  task->func(task->ptr);
-	  /* release the lock to let another thread get some work */
-	  pthread_mutex_unlock(&tp->mutex);
-	}
-
-      free(task);
+    if (task->onion == 0) {
+      /* release the lock to let another thread get some work */
+      pthread_mutex_unlock(&tp->mutex);
+      /* do the work */
+      task->func(task->ptr);
+    } else {
+      /* expand the onion */
+      task->func(task->ptr);
+      /* release the lock to let another thread get some work */
+      pthread_mutex_unlock(&tp->mutex);
     }
+
+    free(task);
+  }
 
   /* we've been told to stop, release the mutex */
   pthread_mutex_unlock(&tp->mutex);
@@ -123,25 +114,20 @@ static void *threadpool_run(void *ptr)
 }
 #endif
 
-static void threadpool_free(threadpool_t *tp)
-{
+static void threadpool_free(threadpool_t *tp) {
 #ifdef HAVE_PTHREAD
   threadpool_task_t *task;
 
-  while((task = tp->head) != NULL)
-    {
-      tp->head = task->next;
-      free(task);
-    }
+  while ((task = tp->head) != NULL) {
+    tp->head = task->next;
+    free(task);
+  }
 
-  if(tp->threads != NULL)
-    free(tp->threads);
+  if (tp->threads != NULL) free(tp->threads);
 
-  if(tp->flags & TP_FLAG_COND)
-    pthread_cond_destroy(&tp->cond);
+  if (tp->flags & TP_FLAG_COND) pthread_cond_destroy(&tp->cond);
 
-  if(tp->flags & TP_FLAG_MUTEX)
-    pthread_mutex_destroy(&tp->mutex);
+  if (tp->flags & TP_FLAG_MUTEX) pthread_mutex_destroy(&tp->mutex);
 #endif
 
   free(tp);
@@ -151,12 +137,12 @@ static void threadpool_free(threadpool_t *tp)
 #ifdef HAVE_PTHREAD
 #ifndef DMALLOC
 static threadpool_task_t *threadpool_task_alloc(threadpool_func_t func,
-						void *ptr, int onion)
+                                                void *ptr, int onion)
 #else
 static threadpool_task_t *threadpool_task_alloc_dm(threadpool_func_t func,
-						   void *ptr, int onion,
-						   const char *file,
-						   const int line)
+                                                   void *ptr, int onion,
+                                                   const char *file,
+                                                   const int line)
 #endif
 {
   threadpool_task_t *task;
@@ -166,11 +152,10 @@ static threadpool_task_t *threadpool_task_alloc_dm(threadpool_func_t func,
   task = (threadpool_task_t *)malloc(len);
 #else
   task = (threadpool_task_t *)dmalloc_malloc(file, line, len,
-					     DMALLOC_FUNC_MALLOC, 0, 0);
+                                             DMALLOC_FUNC_MALLOC, 0, 0);
 #endif
 
-  if(task == NULL)
-    return NULL;
+  if (task == NULL) return NULL;
   task->func = func;
   task->ptr = ptr;
   task->onion = onion;
@@ -180,11 +165,11 @@ static threadpool_task_t *threadpool_task_alloc_dm(threadpool_func_t func,
 
 #ifndef DMALLOC
 static int threadpool_task_add(threadpool_t *tp, threadpool_func_t func,
-			       void *ptr, int onion, int head, int lock)
+                               void *ptr, int onion, int head, int lock)
 #else
 static int threadpool_task_add_dm(threadpool_t *tp, threadpool_func_t func,
-				  void *ptr, int onion, int head, int lock,
-				  const char *file, const int line)
+                                  void *ptr, int onion, int head, int lock,
+                                  const char *file, const int line)
 #endif
 {
 #ifdef HAVE_PTHREAD
@@ -192,11 +177,10 @@ static int threadpool_task_add_dm(threadpool_t *tp, threadpool_func_t func,
 
   assert(tp != NULL);
 
-  if(tp->threadc == 0)
-    {
-      func(ptr);
-      return 0;
-    }
+  if (tp->threadc == 0) {
+    func(ptr);
+    return 0;
+  }
 
 #ifndef DMALLOC
   task = threadpool_task_alloc(func, ptr, onion);
@@ -204,41 +188,34 @@ static int threadpool_task_add_dm(threadpool_t *tp, threadpool_func_t func,
   task = threadpool_task_alloc_dm(func, ptr, onion, file, line);
 #endif
 
-  if(task == NULL)
-    return -1;
+  if (task == NULL) return -1;
 
   /* take the lock and put the task to the list */
-  if(lock != 0 && pthread_mutex_lock(&tp->mutex) != 0)
-    {
-      free(task);
-      return -1;
-    }
+  if (lock != 0 && pthread_mutex_lock(&tp->mutex) != 0) {
+    free(task);
+    return -1;
+  }
 
-  if(head == 0)
-    {
-      if(tp->tail != NULL)
-	tp->tail->next = task;
-      else
-	tp->tail = tp->head = task;
-      task->next = NULL;
-      tp->tail = task;
-    }
-  else
-    {
-      task->next = tp->head;
-      if(tp->head != NULL)
-	tp->head = task;
-      else
-	tp->head = tp->tail = task;
-    }
+  if (head == 0) {
+    if (tp->tail != NULL)
+      tp->tail->next = task;
+    else
+      tp->tail = tp->head = task;
+    task->next = NULL;
+    tp->tail = task;
+  } else {
+    task->next = tp->head;
+    if (tp->head != NULL)
+      tp->head = task;
+    else
+      tp->head = tp->tail = task;
+  }
 
   /* signal to the thread pool that there's a task waiting */
-  if(pthread_cond_signal(&tp->cond) != 0)
-    return -1;
+  if (pthread_cond_signal(&tp->cond) != 0) return -1;
 
   /* release the mutex to allow a thread to take it up */
-  if(lock != 0 && pthread_mutex_unlock(&tp->mutex) != 0)
-    return -1;
+  if (lock != 0 && pthread_mutex_unlock(&tp->mutex) != 0) return -1;
 #else
   func(ptr);
 #endif
@@ -247,39 +224,34 @@ static int threadpool_task_add_dm(threadpool_t *tp, threadpool_func_t func,
 }
 
 #ifndef DMALLOC
-int threadpool_tail_push(threadpool_t *tp, threadpool_func_t func, void *ptr)
-{
+int threadpool_tail_push(threadpool_t *tp, threadpool_func_t func, void *ptr) {
   /* onion, head, lock */
   return threadpool_task_add(tp, func, ptr, 0, 0, 1);
 }
 int threadpool_tail_push_onion(threadpool_t *tp, threadpool_func_t func,
-			       void *ptr)
-{
+                               void *ptr) {
   /* onion, head, lock */
   return threadpool_task_add(tp, func, ptr, 1, 0, 1);
 }
 int threadpool_head_push_nolock(threadpool_t *tp, threadpool_func_t func,
-				void *ptr)
-{
+                                void *ptr) {
   /* onion, head, lock */
   return threadpool_task_add(tp, func, ptr, 0, 1, 0);
 }
 #else
 int threadpool_tail_push_dm(threadpool_t *tp, threadpool_func_t func, void *ptr,
-			    const char *file, const int line)
-{
+                            const char *file, const int line) {
   /* onion, head, lock */
   return threadpool_task_add_dm(tp, func, ptr, 0, 0, 1, file, line);
 }
 int threadpool_tail_push_onion_dm(threadpool_t *tp, threadpool_func_t func,
-				  void *ptr, const char *file, const int line)
-{
+                                  void *ptr, const char *file, const int line) {
   /* onion, head, lock */
   return threadpool_task_add_dm(tp, func, ptr, 1, 0, 1, file, line);
 }
 int threadpool_head_push_nolock_dm(threadpool_t *tp, threadpool_func_t func,
-				   void *ptr, const char *file, const int line)
-{
+                                   void *ptr, const char *file,
+                                   const int line) {
   /* onion, head, lock */
   return threadpool_task_add_dm(tp, func, ptr, 0, 1, 0, file, line);
 }
@@ -291,36 +263,30 @@ int threadpool_head_push_nolock_dm(threadpool_t *tp, threadpool_func_t func,
  * signal to the threads that there is nothing left to do, and wait
  * for them to complete work
  */
-int threadpool_join(threadpool_t *tp)
-{
+int threadpool_join(threadpool_t *tp) {
 #ifdef HAVE_PTHREAD
   int i;
 
-  if(tp->threadc > 0)
-    {
-      assert(tp->threads != NULL);
-      assert((tp->flags & TP_FLAG_MUTEX) != 0);
-      assert((tp->flags & TP_FLAG_COND) != 0);
+  if (tp->threadc > 0) {
+    assert(tp->threads != NULL);
+    assert((tp->flags & TP_FLAG_MUTEX) != 0);
+    assert((tp->flags & TP_FLAG_COND) != 0);
 
-      /* take the mutex to set the stop variable */
-      if(pthread_mutex_lock(&tp->mutex) != 0)
-	return -1;
+    /* take the mutex to set the stop variable */
+    if (pthread_mutex_lock(&tp->mutex) != 0) return -1;
 
-      /* set the stop flag and wake up all the worker threads */
-      assert(tp->stop == 0);
-      tp->stop = 1;
-      if(pthread_cond_broadcast(&tp->cond) != 0)
-	return -1;
+    /* set the stop flag and wake up all the worker threads */
+    assert(tp->stop == 0);
+    tp->stop = 1;
+    if (pthread_cond_broadcast(&tp->cond) != 0) return -1;
 
-      /* release the mutex to allow other threads to proceed */
-      if(pthread_mutex_unlock(&tp->mutex) != 0)
-	return -1;
+    /* release the mutex to allow other threads to proceed */
+    if (pthread_mutex_unlock(&tp->mutex) != 0) return -1;
 
-      /* wait for all threads to stop */
-      for(i=0; i<tp->threadc; i++)
-	if(pthread_join(tp->threads[i], NULL) != 0)
-	  return -1;
-    }
+    /* wait for all threads to stop */
+    for (i = 0; i < tp->threadc; i++)
+      if (pthread_join(tp->threads[i], NULL) != 0) return -1;
+  }
 #endif
 
   threadpool_free(tp);
@@ -330,61 +296,56 @@ int threadpool_join(threadpool_t *tp)
 #ifndef DMALLOC
 threadpool_t *threadpool_alloc(int threadc)
 #else
-threadpool_t *threadpool_alloc_dm(int threadc,const char *file,const int line)
+threadpool_t *threadpool_alloc_dm(int threadc, const char *file, const int line)
 #endif
 {
   threadpool_t *tp = NULL;
   size_t len;
 
-  if(threadc < 0)
-    return NULL;
+  if (threadc < 0) return NULL;
 
 #ifndef HAVE_PTHREAD
-  if(threadc > 0)
-    return NULL;
+  if (threadc > 0) return NULL;
 #endif
 
   len = sizeof(threadpool_t);
 #ifndef DMALLOC
   tp = (threadpool_t *)malloc(len);
 #else
-  tp = (threadpool_t *)dmalloc_malloc(file,line,len,DMALLOC_FUNC_MALLOC,0,0);
+  tp = (threadpool_t *)dmalloc_malloc(file, line, len, DMALLOC_FUNC_MALLOC, 0,
+                                      0);
 #endif
-  if(tp == NULL)
-    goto err;
+  if (tp == NULL) goto err;
   memset(tp, 0, len);
 
 #ifdef HAVE_PTHREAD
-  if(pthread_mutex_init(&tp->mutex, NULL) != 0)
-    goto err;
+  if (pthread_mutex_init(&tp->mutex, NULL) != 0) goto err;
   tp->flags |= TP_FLAG_MUTEX;
 
-  if(pthread_cond_init(&tp->cond, NULL) != 0)
-    goto err;
+  if (pthread_cond_init(&tp->cond, NULL) != 0) goto err;
   tp->flags |= TP_FLAG_COND;
 
   len = sizeof(pthread_t) * threadc;
 #ifndef DMALLOC
   tp->threads = (pthread_t *)malloc(len);
 #else
-  tp->threads = (pthread_t *)dmalloc_malloc(file, line, len,
-					    DMALLOC_FUNC_MALLOC, 0, 0);
+  tp->threads =
+      (pthread_t *)dmalloc_malloc(file, line, len, DMALLOC_FUNC_MALLOC, 0, 0);
 #endif
-  if(tp->threads == NULL)
-    goto err;
+  if (tp->threads == NULL) goto err;
 
   /* create the pool of threads that will get work done */
-  while(tp->threadc < threadc)
-    {
-      if(pthread_create(&tp->threads[tp->threadc],NULL,threadpool_run,tp) != 0)
-	goto err;
-      tp->threadc++;
-    }
+  while (tp->threadc < threadc) {
+    if (pthread_create(&tp->threads[tp->threadc], NULL, threadpool_run, tp) !=
+        0)
+      goto err;
+    tp->threadc++;
+  }
 #endif
 
   return tp;
 
- err:
-  if(tp != NULL) threadpool_join(tp);
+err:
+  if (tp != NULL) threadpool_join(tp);
   return NULL;
 }

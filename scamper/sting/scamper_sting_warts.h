@@ -24,9 +24,9 @@
 #define __SCAMPER_STING_WARTS_H
 
 int scamper_file_warts_sting_write(const scamper_file_t *sf,
-				   const scamper_sting_t *sting);
+                                   const scamper_sting_t *sting);
 
 int scamper_file_warts_sting_read(scamper_file_t *sf, const warts_hdr_t *hdr,
-				  scamper_sting_t **sting_out);
+                                  scamper_sting_t **sting_out);
 
 #endif

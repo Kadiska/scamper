@@ -24,10 +24,10 @@
 #define __SCAMPER_NEIGHBOURDISC_WARTS_H
 
 int scamper_file_warts_neighbourdisc_read(scamper_file_t *sf,
-					  const warts_hdr_t *hdr,
-					  scamper_neighbourdisc_t **nd_out);
+                                          const warts_hdr_t *hdr,
+                                          scamper_neighbourdisc_t **nd_out);
 
 int scamper_file_warts_neighbourdisc_write(const scamper_file_t *sf,
-					   const scamper_neighbourdisc_t *nd);
+                                           const scamper_neighbourdisc_t *nd);
 
 #endif /* __SCAMPER_NEIGHBOURDISC_WARTS_H */

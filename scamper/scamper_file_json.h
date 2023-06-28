@@ -24,15 +24,14 @@
 #ifndef __SCAMPER_FILE_JSON_H
 #define __SCAMPER_FILE_JSON_H
 
-typedef struct json_state
-{
-  int               isreg;
+typedef struct json_state {
+  int isreg;
 } json_state_t;
 
 int scamper_file_json_cyclestart_write(const scamper_file_t *sf,
-				       scamper_cycle_t *c);
+                                       scamper_cycle_t *c);
 int scamper_file_json_cyclestop_write(const scamper_file_t *sf,
-				      scamper_cycle_t *c);
+                                      scamper_cycle_t *c);
 
 int json_write(const scamper_file_t *sf, const void *buf, size_t len);
 

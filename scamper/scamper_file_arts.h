@@ -28,7 +28,7 @@
 #define _SCAMPER_FILE_ARTS_H
 
 int scamper_file_arts_read(scamper_file_t *sf, scamper_file_filter_t *filter,
-			   uint16_t *type, void **data);
+                           uint16_t *type, void **data);
 
 int scamper_file_arts_is(const scamper_file_t *file);
 

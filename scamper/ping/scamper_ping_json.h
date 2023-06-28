@@ -24,6 +24,6 @@
 #define __SCAMPER_PING_JSON_H
 
 int scamper_file_json_ping_write(const scamper_file_t *sf,
-				 const scamper_ping_t *ping);
+                                 const scamper_ping_t *ping);
 
 #endif /* __SCAMPER_PING_JSON_H */

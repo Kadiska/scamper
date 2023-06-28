@@ -26,15 +26,15 @@
 #define __SCAMPER_SOURCE_FILE_H
 
 scamper_source_t *scamper_source_file_alloc(scamper_source_params_t *ssp,
-					    const char *filename,
-					    const char *command,
-					    int cycles, int autoreload);
+                                            const char *filename,
+                                            const char *command, int cycles,
+                                            int autoreload);
 
 const char *scamper_source_file_getfilename(const scamper_source_t *source);
 int scamper_source_file_getcycles(const scamper_source_t *source);
 int scamper_source_file_getautoreload(const scamper_source_t *source);
 
-int scamper_source_file_update(scamper_source_t *source,
-			       const int *autoreload, const int *cycles);
+int scamper_source_file_update(scamper_source_t *source, const int *autoreload,
+                               const int *cycles);
 
 #endif /* __SCAMPER_SOURCE_FILE_H */

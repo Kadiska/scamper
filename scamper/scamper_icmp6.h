@@ -28,11 +28,11 @@
 #include <pcap.h>
 #include "scamper_pcap.h"
 
-pcap_t * scamper_pcap_icmp6_open(const void *addr);
-void scamper_pcap_icmp6_close(pcap_t * fd);
+pcap_t *scamper_pcap_icmp6_open(const void *addr);
+void scamper_pcap_icmp6_close(pcap_t *fd);
 
 void scamper_pcap_icmp6_cleanup(void);
-void scamper_pcap_icmp6_read_cb(scamper_pcap_t * pcap, void *param);
+void scamper_pcap_icmp6_read_cb(scamper_pcap_t *pcap, void *param);
 
 #ifdef __SCAMPER_PROBE_H
 int scamper_pcap_icmp6_probe(scamper_probe_t *probe);
@@ -41,7 +41,7 @@ uint16_t scamper_pcap_icmp6_cksum(scamper_probe_t *probe);
 #endif
 
 #ifdef __SCAMPER_ICMP_RESP_H
-int scamper_pcap_icmp6_recv(scamper_pcap_t * pcap, scamper_icmp_resp_t *resp);
+int scamper_pcap_icmp6_recv(scamper_pcap_t *pcap, scamper_icmp_resp_t *resp);
 #endif
 
 #endif /* __SCAMPER_ICMP6_H */

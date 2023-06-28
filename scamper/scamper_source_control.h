@@ -24,10 +24,9 @@
 #ifndef __SCAMPER_SOURCE_CONTROL_H
 #define __SCAMPER_SOURCE_CONTROL_H
 
-scamper_source_t *scamper_source_control_alloc(scamper_source_params_t *ssp,
-				       void (*signalmore)(void *),
-				       char *(*tostr)(void *,char *,size_t),
-				       void *param);
+scamper_source_t *scamper_source_control_alloc(
+    scamper_source_params_t *ssp, void (*signalmore)(void *),
+    char *(*tostr)(void *, char *, size_t), void *param);
 
 void scamper_source_control_finish(scamper_source_t *source);
 

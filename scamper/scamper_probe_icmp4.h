@@ -32,12 +32,13 @@ int scamper_probe_icmp4_open_err(const void *addr);
 void scamper_probe_icmp4_close(int fd);
 
 void scamper_probe_icmp4_cleanup(void);
-void scamper_probe_icmp4_read_cb(void * fd, void *param);
-void scamper_probe_icmp4_read_err_cb(void * fd, void *param);
+void scamper_probe_icmp4_read_cb(void *fd, void *param);
+void scamper_probe_icmp4_read_err_cb(void *fd, void *param);
 
 #ifdef __SCAMPER_PROBE_H
 int scamper_probe_icmp4_probe(scamper_probe_t *probe);
-int scamper_probe_icmp4_build(scamper_probe_t *probe, uint8_t *buf, size_t *len);
+int scamper_probe_icmp4_build(scamper_probe_t *probe, uint8_t *buf,
+                              size_t *len);
 uint16_t scamper_probe_icmp4_cksum(scamper_probe_t *probe);
 #endif
 

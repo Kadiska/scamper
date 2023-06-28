@@ -28,9 +28,8 @@ typedef struct scamper_host_do scamper_host_do_t;
 
 void *scamper_do_host_alloc(char *str);
 
-scamper_task_t *scamper_do_host_alloctask(void *data,
-					  scamper_list_t *list,
-					  scamper_cycle_t *cycle);
+scamper_task_t *scamper_do_host_alloctask(void *data, scamper_list_t *list,
+                                          scamper_cycle_t *cycle);
 
 int scamper_do_host_arg_validate(int argc, char *argv[], int *stop);
 
@@ -41,12 +40,12 @@ const char *scamper_do_host_usage(void);
 /* code to use the host code to do a PTR record lookup */
 typedef void (*scamper_host_do_ptr_cb_t)(void *param, const char *name);
 scamper_host_do_t *scamper_do_host_do_ptr(scamper_addr_t *ip, void *param,
-					  scamper_host_do_ptr_cb_t cb);
+                                          scamper_host_do_ptr_cb_t cb);
 
 /* code to use the host code to do A record lookup */
 typedef void (*scamper_host_do_a_cb_t)(void *param, scamper_addr_t **a, int c);
 scamper_host_do_t *scamper_do_host_do_a(const char *name, void *param,
-					scamper_host_do_a_cb_t cb);
+                                        scamper_host_do_a_cb_t cb);
 
 void scamper_host_do_free(scamper_host_do_t *hostdo);
 

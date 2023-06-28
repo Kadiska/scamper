@@ -46,16 +46,16 @@
  * Linux source.
  */
 typedef struct {
-	uint32_t can_id;
-	uint8_t payload_length;
-	uint8_t fd_flags;
-	uint8_t reserved1;
-	uint8_t reserved2;
+  uint32_t can_id;
+  uint8_t payload_length;
+  uint8_t fd_flags;
+  uint8_t reserved1;
+  uint8_t reserved2;
 } pcap_can_socketcan_hdr;
 
 /* Bits in the fd_flags field */
-#define CANFD_BRS   0x01 /* bit rate switch (second bitrate for payload data) */
-#define CANFD_ESI   0x02 /* error state indicator of the transmitting node */
-#define CANFD_FDF   0x04 /* mark CAN FD for dual use of CAN format */
+#define CANFD_BRS 0x01 /* bit rate switch (second bitrate for payload data) */
+#define CANFD_ESI 0x02 /* error state indicator of the transmitting node */
+#define CANFD_FDF 0x04 /* mark CAN FD for dual use of CAN format */
 
 #endif

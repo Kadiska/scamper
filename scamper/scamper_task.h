@@ -39,54 +39,47 @@ struct scamper_sourcetask;
 #define SCAMPER_TASK_SIG_TYPE_TX_IP 1
 #define SCAMPER_TASK_SIG_TYPE_TX_ND 2
 #define SCAMPER_TASK_SIG_TYPE_SNIFF 3
-#define SCAMPER_TASK_SIG_TYPE_HOST  4
+#define SCAMPER_TASK_SIG_TYPE_HOST 4
 
 typedef struct scamper_task scamper_task_t;
 typedef struct scamper_task_anc scamper_task_anc_t;
 
-typedef struct scamper_task_sig
-{
+typedef struct scamper_task_sig {
   uint8_t sig_type;
-  union
-  {
-    struct tx_ip
-    {
+  union {
+    struct tx_ip {
       struct scamper_addr *dst;
       struct scamper_addr *src;
     } ip;
-    struct tx_nd
-    {
+    struct tx_nd {
       struct scamper_addr *ip;
     } nd;
-    struct sniff
-    {
+    struct sniff {
       struct scamper_addr *src;
-      uint16_t             icmpid;
+      uint16_t icmpid;
     } sniff;
-    struct host
-    {
-      char                *name;
-      uint16_t             type;
+    struct host {
+      char *name;
+      uint16_t type;
     } host;
   } un;
 } scamper_task_sig_t;
 
-#define sig_tx_ip_dst     un.ip.dst
-#define sig_tx_ip_src     un.ip.src
-#define sig_tx_nd_ip      un.nd.ip
-#define sig_sniff_src     un.sniff.src
+#define sig_tx_ip_dst un.ip.dst
+#define sig_tx_ip_src un.ip.src
+#define sig_tx_nd_ip un.nd.ip
+#define sig_sniff_src un.sniff.src
 #define sig_sniff_icmp_id un.sniff.icmpid
-#define sig_host_name     un.host.name
-#define sig_host_type     un.host.type
+#define sig_host_name un.host.name
+#define sig_host_type un.host.type
 
-typedef struct scamper_task_funcs
-{
+typedef struct scamper_task_funcs {
   /* probe the destination */
   void (*probe)(struct scamper_task *task);
 
   /* handle some ICMP packet */
   void (*handle_icmp)(struct scamper_task *task,
-		      struct scamper_icmp_resp *icmp);
+                      struct scamper_icmp_resp *icmp);
 
   /* handle some information from the datalink */
   void (*handle_dl)(struct scamper_task *task, struct scamper_dl_rec *dl_rec);
@@ -116,13 +109,13 @@ struct scamper_source *scamper_task_getsource(scamper_task_t *task);
 void scamper_task_setdatanull(scamper_task_t *task);
 void scamper_task_setstate(scamper_task_t *task, void *state);
 void scamper_task_setsourcetask(scamper_task_t *task,
-				struct scamper_sourcetask *st);
+                                struct scamper_sourcetask *st);
 void scamper_task_setcyclemon(scamper_task_t *t, struct scamper_cyclemon *cm);
 
 /* access the various functions registered with the task */
 void scamper_task_write(scamper_task_t *task, struct scamper_file *file);
 void scamper_task_probe(scamper_task_t *task);
-void scamper_task_handleicmp(scamper_task_t *task,struct scamper_icmp_resp *r);
+void scamper_task_handleicmp(scamper_task_t *task, struct scamper_icmp_resp *r);
 void scamper_task_handletimeout(scamper_task_t *task);
 void scamper_task_halt(scamper_task_t *task);
 
@@ -166,7 +159,7 @@ char *scamper_task_sig_tostr(scamper_task_sig_t *sig, char *buf, size_t len);
 
 /* manage ancillary data attached to the task */
 scamper_task_anc_t *scamper_task_anc_add(scamper_task_t *task, void *data,
-					 void (*freedata)(void *));
+                                         void (*freedata)(void *));
 void scamper_task_anc_del(scamper_task_t *task, scamper_task_anc_t *anc);
 
 /*
@@ -179,7 +172,7 @@ void scamper_task_anc_del(scamper_task_t *task, scamper_task_anc_t *anc);
  * from  being on hold at a later point.
  */
 void *scamper_task_onhold(scamper_task_t *task, void *param,
-			  void (*unhold)(void *param));
+                          void (*unhold)(void *param));
 
 /*
  * scamper_task_dehold

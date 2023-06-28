@@ -25,6 +25,6 @@
 #define __SCAMPER_TRACELB_TEXT_H
 
 int scamper_file_text_tracelb_write(const scamper_file_t *sf,
-				    const scamper_tracelb_t *trace);
+                                    const scamper_tracelb_t *trace);
 
 #endif /* __SCAMPER_TRACELB_TEXT_H */

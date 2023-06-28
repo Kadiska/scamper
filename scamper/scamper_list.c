@@ -38,54 +38,47 @@
  * compared with the (same) cycle without a stop time, and be rejected
  * incorrectly.
  */
-int scamper_cycle_cmp(scamper_cycle_t *a, scamper_cycle_t *b)
-{
+int scamper_cycle_cmp(scamper_cycle_t *a, scamper_cycle_t *b) {
   int i;
 
-  if(a == b)
-    {
-      return 0;
-    }
+  if (a == b) {
+    return 0;
+  }
 
   /* compare lists */
-  if((i = scamper_list_cmp(a->list, b->list)) != 0)
-    {
-      return i;
-    }
+  if ((i = scamper_list_cmp(a->list, b->list)) != 0) {
+    return i;
+  }
 
   /* compare cycle ids */
-  if(a->id < b->id) return -1;
-  if(a->id > b->id) return 1;
+  if (a->id < b->id) return -1;
+  if (a->id > b->id) return 1;
 
   /* compare start times */
-  if(a->start_time < b->start_time) return -1;
-  if(a->start_time > b->start_time) return 1;
+  if (a->start_time < b->start_time) return -1;
+  if (a->start_time > b->start_time) return 1;
 
   /* compare host names */
-  if(a->hostname != NULL || b->hostname != NULL)
-    {
-      if(a->hostname == NULL && b->hostname != NULL) return -1;
-      if(a->hostname != NULL && b->hostname == NULL) return 1;
-      if((i = strcmp(a->hostname, b->hostname)) != 0) return i;
-    }
+  if (a->hostname != NULL || b->hostname != NULL) {
+    if (a->hostname == NULL && b->hostname != NULL) return -1;
+    if (a->hostname != NULL && b->hostname == NULL) return 1;
+    if ((i = strcmp(a->hostname, b->hostname)) != 0) return i;
+  }
 
   /* they're the same, as best we can tell */
   return 0;
 }
 
-scamper_cycle_t *scamper_cycle_alloc(scamper_list_t *list)
-{
+scamper_cycle_t *scamper_cycle_alloc(scamper_list_t *list) {
   scamper_cycle_t *cycle;
 
-  if(list == NULL)
-    {
-      return NULL;
-    }
+  if (list == NULL) {
+    return NULL;
+  }
 
-  if((cycle = malloc_zero(sizeof(struct scamper_cycle))) == NULL)
-    {
-      return NULL;
-    }
+  if ((cycle = malloc_zero(sizeof(struct scamper_cycle))) == NULL) {
+    return NULL;
+  }
 
   cycle->list = scamper_list_use(list);
   cycle->refcnt = 1;
@@ -93,130 +86,112 @@ scamper_cycle_t *scamper_cycle_alloc(scamper_list_t *list)
   return cycle;
 }
 
-scamper_cycle_t *scamper_cycle_use(scamper_cycle_t *cycle)
-{
-  if(cycle != NULL) cycle->refcnt++;
+scamper_cycle_t *scamper_cycle_use(scamper_cycle_t *cycle) {
+  if (cycle != NULL) cycle->refcnt++;
   return cycle;
 }
 
-void scamper_cycle_free(scamper_cycle_t *cycle)
-{
-  if(cycle != NULL)
-    {
-      assert(cycle->refcnt > 0);
+void scamper_cycle_free(scamper_cycle_t *cycle) {
+  if (cycle != NULL) {
+    assert(cycle->refcnt > 0);
 
-      if(--cycle->refcnt > 0)
-	{
-	  return;
-	}
-
-      if(cycle->list != NULL) scamper_list_free(cycle->list);
-      if(cycle->hostname != NULL) free(cycle->hostname);
-      free(cycle);
+    if (--cycle->refcnt > 0) {
+      return;
     }
+
+    if (cycle->list != NULL) scamper_list_free(cycle->list);
+    if (cycle->hostname != NULL) free(cycle->hostname);
+    free(cycle);
+  }
 
   return;
 }
 
-int scamper_list_cmp(const scamper_list_t *a, const scamper_list_t *b)
-{
+int scamper_list_cmp(const scamper_list_t *a, const scamper_list_t *b) {
   int i;
 
   /* if the lists are in the same piece of memory, they're identical */
-  if(a == b)
-    {
-      return 0;
-    }
+  if (a == b) {
+    return 0;
+  }
 
   /* compare list ids */
-  if(a->id < b->id) return -1;
-  if(a->id > b->id) return 1;
+  if (a->id < b->id) return -1;
+  if (a->id > b->id) return 1;
 
   /* compare name strings */
-  if(a->name != NULL || b->name != NULL)
-    {
-      if(a->name == NULL && b->name != NULL) return -1;
-      if(a->name != NULL && b->name == NULL) return 1;
-      if((i = strcmp(a->name, b->name)) != 0) return i;
-    }
+  if (a->name != NULL || b->name != NULL) {
+    if (a->name == NULL && b->name != NULL) return -1;
+    if (a->name != NULL && b->name == NULL) return 1;
+    if ((i = strcmp(a->name, b->name)) != 0) return i;
+  }
 
   /* compare description strings */
-  if(a->descr != NULL || b->descr != NULL)
-    {
-      if(a->descr == NULL && b->descr != NULL) return -1;
-      if(a->descr != NULL && b->descr == NULL) return 1;
-      if((i = strcmp(a->descr, b->descr)) != 0) return i;
-    }
+  if (a->descr != NULL || b->descr != NULL) {
+    if (a->descr == NULL && b->descr != NULL) return -1;
+    if (a->descr != NULL && b->descr == NULL) return 1;
+    if ((i = strcmp(a->descr, b->descr)) != 0) return i;
+  }
 
   /* compare monitor strings */
-  if(a->monitor != NULL || b->monitor != NULL)
-    {
-      if(a->monitor == NULL && b->monitor != NULL) return -1;
-      if(a->monitor != NULL && b->monitor == NULL) return 1;
-      if((i = strcmp(a->monitor, b->monitor)) != 0) return i;
-    }
+  if (a->monitor != NULL || b->monitor != NULL) {
+    if (a->monitor == NULL && b->monitor != NULL) return -1;
+    if (a->monitor != NULL && b->monitor == NULL) return 1;
+    if ((i = strcmp(a->monitor, b->monitor)) != 0) return i;
+  }
 
   /* they're the same, as best we can tell */
   return 0;
 }
 
 scamper_list_t *scamper_list_alloc(const uint32_t id, const char *name,
-				   const char *descr, const char *monitor)
-{
+                                   const char *descr, const char *monitor) {
   scamper_list_t *list;
 
-  if((list = malloc_zero(sizeof(struct scamper_list))) == NULL)
-    {
-      return NULL;
-    }
+  if ((list = malloc_zero(sizeof(struct scamper_list))) == NULL) {
+    return NULL;
+  }
 
   list->id = id;
   list->refcnt = 1;
 
-  if(name != NULL && (list->name = strdup(name)) == NULL)
-    {
-      goto err;
-    }
+  if (name != NULL && (list->name = strdup(name)) == NULL) {
+    goto err;
+  }
 
-  if(descr != NULL && (list->descr = strdup(descr)) == NULL)
-    {
-      goto err;
-    }
+  if (descr != NULL && (list->descr = strdup(descr)) == NULL) {
+    goto err;
+  }
 
-  if(monitor != NULL && (list->monitor = strdup(monitor)) == NULL)
-    {
-      goto err;
-    }
+  if (monitor != NULL && (list->monitor = strdup(monitor)) == NULL) {
+    goto err;
+  }
 
   return list;
 
- err:
+err:
   scamper_list_free(list);
   return NULL;
 }
 
-scamper_list_t *scamper_list_use(scamper_list_t *list)
-{
-  if(list != NULL) list->refcnt++;
+scamper_list_t *scamper_list_use(scamper_list_t *list) {
+  if (list != NULL) list->refcnt++;
   return list;
 }
 
-void scamper_list_free(scamper_list_t *list)
-{
-  if(list != NULL)
-    {
-      assert(list->refcnt > 0);
+void scamper_list_free(scamper_list_t *list) {
+  if (list != NULL) {
+    assert(list->refcnt > 0);
 
-      if(--list->refcnt > 0)
-	{
-	  return;
-	}
-
-      if(list->name != NULL) free(list->name);
-      if(list->descr != NULL) free(list->descr);
-      if(list->monitor != NULL) free(list->monitor);
-      free(list);
+    if (--list->refcnt > 0) {
+      return;
     }
+
+    if (list->name != NULL) free(list->name);
+    if (list->descr != NULL) free(list->descr);
+    if (list->monitor != NULL) free(list->monitor);
+    free(list);
+  }
 
   return;
 }

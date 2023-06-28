@@ -35,47 +35,39 @@
 #include "scamper_source_cmdline.h"
 #include "utils.h"
 
-static int command_assemble(char **out, size_t *len,
-			    const char *cmd, size_t cmdlen, const char *addr)
-{
+static int command_assemble(char **out, size_t *len, const char *cmd,
+                            size_t cmdlen, const char *addr) {
   size_t addrlen = strlen(addr);
   size_t reqlen = cmdlen + 1 + addrlen + 1;
-  char  *tmp;
+  char *tmp;
 
-  if(reqlen > *len)
-    {
-      if(*len != 0)
-	{
-	  if((tmp = realloc(*out, reqlen)) == NULL)
-	    {
-	      printerror(__func__, "could not realloc %d bytes", reqlen);
-	      return -1;
-	    }
-	}
-      else
-	{
-	  if((tmp = malloc_zero(reqlen)) == NULL)
-	    {
-	      printerror(__func__, "could not malloc %d bytes", reqlen);
-	      return -1;
-	    }
+  if (reqlen > *len) {
+    if (*len != 0) {
+      if ((tmp = realloc(*out, reqlen)) == NULL) {
+        printerror(__func__, "could not realloc %d bytes", reqlen);
+        return -1;
+      }
+    } else {
+      if ((tmp = malloc_zero(reqlen)) == NULL) {
+        printerror(__func__, "could not malloc %d bytes", reqlen);
+        return -1;
+      }
 
-	  memcpy(tmp, cmd, cmdlen);
-	  tmp[cmdlen] = ' ';
-	}
-
-      *out = tmp;
-      *len = reqlen;
+      memcpy(tmp, cmd, cmdlen);
+      tmp[cmdlen] = ' ';
     }
 
-  memcpy((*out)+cmdlen+1, addr, addrlen + 1);
+    *out = tmp;
+    *len = reqlen;
+  }
+
+  memcpy((*out) + cmdlen + 1, addr, addrlen + 1);
   return 0;
 }
 
 scamper_source_t *scamper_source_cmdline_alloc(scamper_source_params_t *ssp,
-					       const char *cmd,
-					       char **arg, int arg_cnt)
-{
+                                               const char *cmd, char **arg,
+                                               int arg_cnt) {
   scamper_source_t *source = NULL;
   size_t cmd_len, len = 0;
   char *buf = NULL;
@@ -83,43 +75,35 @@ scamper_source_t *scamper_source_cmdline_alloc(scamper_source_params_t *ssp,
 
   ssp->type = SCAMPER_SOURCE_TYPE_CMDLINE;
 
-  if((source = scamper_source_alloc(ssp)) == NULL)
-    {
-      goto err;
-    }
+  if ((source = scamper_source_alloc(ssp)) == NULL) {
+    goto err;
+  }
 
-  if(cmd != NULL)
-    {
-      cmd_len = strlen(cmd);
-      for(i=0; i<arg_cnt; i++)
-	{
-	  if (strcmp(arg[i], "-i") == 0) {
-	      // TODO: We skip for now, but we need to check why on windows we have this
-          }
-	  else if(command_assemble(&buf, &len, cmd, cmd_len, arg[i]) != 0 ||
-	     scamper_source_command(source, buf) != 0)
-	    {
-	      goto err;
-	    }
-	}
+  if (cmd != NULL) {
+    cmd_len = strlen(cmd);
+    for (i = 0; i < arg_cnt; i++) {
+      if (strcmp(arg[i], "-i") == 0) {
+        // TODO: We skip for now, but we need to check why on windows we have
+        // this
+      } else if (command_assemble(&buf, &len, cmd, cmd_len, arg[i]) != 0 ||
+                 scamper_source_command(source, buf) != 0) {
+        goto err;
+      }
     }
-  else
-    {
-      for(i=0; i<arg_cnt; i++)
-	{
-	  if(scamper_source_command(source, arg[i]) != 0) {
-	    goto err;
-	  }
-	}
+  } else {
+    for (i = 0; i < arg_cnt; i++) {
+      if (scamper_source_command(source, arg[i]) != 0) {
+        goto err;
+      }
     }
+  }
 
-  if(buf != NULL)
-    free(buf);
+  if (buf != NULL) free(buf);
 
   return source;
 
- err:
-  if(source != NULL) scamper_source_free(source);
-  if(buf != NULL) free(buf);
+err:
+  if (source != NULL) scamper_source_free(source);
+  if (buf != NULL) free(buf);
   return NULL;
 }

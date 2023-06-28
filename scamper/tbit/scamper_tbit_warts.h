@@ -33,9 +33,9 @@
 #define __SCAMPER_FILE_WARTS_TBIT_H
 
 int scamper_file_warts_tbit_write(const scamper_file_t *sf,
-				  const scamper_tbit_t *tbit);
+                                  const scamper_tbit_t *tbit);
 
 int scamper_file_warts_tbit_read(scamper_file_t *sf, const warts_hdr_t *hdr,
-				 scamper_tbit_t **tbit_out);
+                                 scamper_tbit_t **tbit_out);
 
 #endif

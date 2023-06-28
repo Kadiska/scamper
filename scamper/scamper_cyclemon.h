@@ -29,17 +29,17 @@ struct scamper_source;
 struct scamper_outfile;
 
 typedef void (*scamper_cyclemon_finish_t)(scamper_cycle_t *cycle,
-					  struct scamper_source *source,
-					  struct scamper_outfile *outfile);
+                                          struct scamper_source *source,
+                                          struct scamper_outfile *outfile);
 
 /* structure for monitoring the references to a cycle by data producers */
 typedef struct scamper_cyclemon scamper_cyclemon_t;
 
 /* allocate a structure to monitor when to write a cycle stop record to file */
 scamper_cyclemon_t *scamper_cyclemon_alloc(scamper_cycle_t *cycle,
-					   scamper_cyclemon_finish_t finish,
-					   struct scamper_source *source,
-					   struct scamper_outfile *outfile);
+                                           scamper_cyclemon_finish_t finish,
+                                           struct scamper_source *source,
+                                           struct scamper_outfile *outfile);
 
 scamper_cycle_t *scamper_cyclemon_cycle(const scamper_cyclemon_t *cyclemon);
 

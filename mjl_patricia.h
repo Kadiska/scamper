@@ -47,17 +47,17 @@ int patricia_count(const patricia_t *trie);
 #ifndef DMALLOC
 patricia_node_t *patricia_insert(patricia_t *trie, void *item);
 patricia_t *patricia_alloc(patricia_bit_t bit, patricia_cmp_t cmp,
-			   patricia_fbd_t fbd);
+                           patricia_fbd_t fbd);
 #else
 patricia_t *patricia_alloc_dm(patricia_bit_t bit, patricia_cmp_t cmp,
-			      patricia_fbd_t fbd,
-			      const char *file, const int line);
+                              patricia_fbd_t fbd, const char *file,
+                              const int line);
 patricia_node_t *patricia_insert_dm(patricia_t *trie, void *item,
-				    const char *file, const int line);
-#define patricia_alloc(bit,cmp,fbd) patricia_alloc_dm((bit),(cmp),(fbd), \
-						      __FILE__, __LINE__)
-#define patricia_insert(trie,item) patricia_insert_dm((trie), (item), \
-						      __FILE__, __LINE__)
+                                    const char *file, const int line);
+#define patricia_alloc(bit, cmp, fbd) \
+  patricia_alloc_dm((bit), (cmp), (fbd), __FILE__, __LINE__)
+#define patricia_insert(trie, item) \
+  patricia_insert_dm((trie), (item), __FILE__, __LINE__)
 #endif
 
 void patricia_free_cb(patricia_t *trie, patricia_free_t free_cb);

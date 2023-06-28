@@ -30,11 +30,12 @@ int scamper_probe_icmp6_open_fd(void);
 void scamper_probe_icmp6_close(int fd);
 
 void scamper_probe_icmp6_cleanup(void);
-void scamper_probe_icmp6_read_cb(void * fd, void *param);
+void scamper_probe_icmp6_read_cb(void *fd, void *param);
 
 #ifdef __SCAMPER_PROBE_H
 int scamper_probe_icmp6_probe(scamper_probe_t *probe);
-int scamper_probe_icmp6_build(scamper_probe_t *probe, uint8_t *buf, size_t *len);
+int scamper_probe_icmp6_build(scamper_probe_t *probe, uint8_t *buf,
+                              size_t *len);
 uint16_t scamper_probe_icmp6_cksum(scamper_probe_t *probe);
 #endif
 

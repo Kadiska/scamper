@@ -29,7 +29,7 @@
 typedef struct scamper_fd scamper_fd_t;
 
 /* when an event occurs, this is the format of the callback used */
-typedef void (*scamper_fd_cb_t)(void * fd, void *param);
+typedef void (*scamper_fd_cb_t)(void *fd, void *param);
 
 /* these functions allocate reference to a socket shared throughout scamper */
 scamper_fd_t *scamper_fd_pcap_icmp4(void *addr);
@@ -57,7 +57,7 @@ int scamper_fd_addr(const scamper_fd_t *fdn, void *addr, size_t len);
 
 /* this function allocates a socket that is exclusively held by the caller */
 scamper_fd_t *scamper_fd_private(int fd, void *param, scamper_fd_cb_t read_cb,
-				 scamper_fd_cb_t write_cb);
+                                 scamper_fd_cb_t write_cb);
 
 scamper_fd_t *scamper_fd_file(int fd, scamper_fd_cb_t read_cb, void *param);
 
@@ -71,7 +71,7 @@ void scamper_fd_free(scamper_fd_t *fdn);
 int scamper_fd_fd_get(const scamper_fd_t *fdn);
 int scamper_fd_fd_set(scamper_fd_t *fdn, int fd);
 
-void * scamper_fd_pcap_get(const scamper_fd_t *fdn);
+void *scamper_fd_pcap_get(const scamper_fd_t *fdn);
 
 /* functions to temporarily unmonitor a fd, and then have it rejoin */
 void scamper_fd_read_pause(scamper_fd_t *fdn);

@@ -34,26 +34,22 @@
 #include "scamper_cyclemon.h"
 #include "utils.h"
 
-struct scamper_cyclemon
-{
-  struct scamper_cycle      *cycle;
-  scamper_cyclemon_finish_t  finish;
-  scamper_source_t          *source;
-  scamper_outfile_t         *outfile;
-  int                        refcnt;
+struct scamper_cyclemon {
+  struct scamper_cycle *cycle;
+  scamper_cyclemon_finish_t finish;
+  scamper_source_t *source;
+  scamper_outfile_t *outfile;
+  int refcnt;
 };
 
-scamper_cycle_t *scamper_cyclemon_cycle(const scamper_cyclemon_t *cyclemon)
-{
-  if(cyclemon != NULL)
-    {
-      return cyclemon->cycle;
-    }
+scamper_cycle_t *scamper_cyclemon_cycle(const scamper_cyclemon_t *cyclemon) {
+  if (cyclemon != NULL) {
+    return cyclemon->cycle;
+  }
   return NULL;
 }
 
-void scamper_cyclemon_source_detach(scamper_cyclemon_t *cyclemon)
-{
+void scamper_cyclemon_source_detach(scamper_cyclemon_t *cyclemon) {
   cyclemon->source = NULL;
   return;
 }
@@ -62,33 +58,27 @@ void scamper_cyclemon_source_detach(scamper_cyclemon_t *cyclemon)
  * scamper_cyclemon_free
  *
  */
-void scamper_cyclemon_free(scamper_cyclemon_t *cyclemon)
-{
-  if(cyclemon == NULL)
-    {
-      return;
-    }
+void scamper_cyclemon_free(scamper_cyclemon_t *cyclemon) {
+  if (cyclemon == NULL) {
+    return;
+  }
 
-  if(cyclemon->cycle != NULL)
-    {
-      scamper_cycle_free(cyclemon->cycle);
-    }
+  if (cyclemon->cycle != NULL) {
+    scamper_cycle_free(cyclemon->cycle);
+  }
 
-  if(cyclemon->outfile != NULL)
-    {
-      scamper_outfile_free(cyclemon->outfile);
-    }
+  if (cyclemon->outfile != NULL) {
+    scamper_outfile_free(cyclemon->outfile);
+  }
 
   free(cyclemon);
   return;
 }
 
-void scamper_cyclemon_unuse(scamper_cyclemon_t *cyclemon)
-{
-  if(cyclemon == NULL)
-    {
-      return;
-    }
+void scamper_cyclemon_unuse(scamper_cyclemon_t *cyclemon) {
+  if (cyclemon == NULL) {
+    return;
+  }
 
   cyclemon->refcnt--;
 
@@ -96,10 +86,9 @@ void scamper_cyclemon_unuse(scamper_cyclemon_t *cyclemon)
    * if there are still others with a pointer to the cycle monitor, then
    * don't finish the cycle off
    */
-  if(cyclemon->refcnt > 0)
-    {
-      return;
-    }
+  if (cyclemon->refcnt > 0) {
+    return;
+  }
 
   cyclemon->finish(cyclemon->cycle, cyclemon->source, cyclemon->outfile);
 
@@ -107,32 +96,28 @@ void scamper_cyclemon_unuse(scamper_cyclemon_t *cyclemon)
   return;
 }
 
-scamper_cyclemon_t *scamper_cyclemon_use(scamper_cyclemon_t *cyclemon)
-{
-  if(cyclemon != NULL) cyclemon->refcnt++;
+scamper_cyclemon_t *scamper_cyclemon_use(scamper_cyclemon_t *cyclemon) {
+  if (cyclemon != NULL) cyclemon->refcnt++;
   return cyclemon;
 }
 
-int scamper_cyclemon_refcnt(scamper_cyclemon_t *cyclemon)
-{
+int scamper_cyclemon_refcnt(scamper_cyclemon_t *cyclemon) {
   return cyclemon->refcnt;
 }
 
 scamper_cyclemon_t *scamper_cyclemon_alloc(scamper_cycle_t *cycle,
-					   scamper_cyclemon_finish_t finish,
-					   scamper_source_t *source,
-					   scamper_outfile_t *outfile)
-{
+                                           scamper_cyclemon_finish_t finish,
+                                           scamper_source_t *source,
+                                           scamper_outfile_t *outfile) {
   scamper_cyclemon_t *cyclemon;
 
-  if((cyclemon = malloc_zero(sizeof(scamper_cyclemon_t))) != NULL)
-    {
-      cyclemon->cycle   = scamper_cycle_use(cycle);
-      cyclemon->outfile = scamper_outfile_use(outfile);
-      cyclemon->finish  = finish;
-      cyclemon->source  = source;
-      cyclemon->refcnt  = 1;
-    }
+  if ((cyclemon = malloc_zero(sizeof(scamper_cyclemon_t))) != NULL) {
+    cyclemon->cycle = scamper_cycle_use(cycle);
+    cyclemon->outfile = scamper_outfile_use(outfile);
+    cyclemon->finish = finish;
+    cyclemon->source = source;
+    cyclemon->refcnt = 1;
+  }
 
   return cyclemon;
 }

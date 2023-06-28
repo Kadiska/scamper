@@ -37,10 +37,11 @@ void printerror_ssl(const char *func, const char *format, ...);
 #ifdef NDEBUG
 #define scamper_assert(expr, task) ((void)0)
 #else
-#define scamper_assert(expr, task) ((expr) ? (void)0 : \
-      __scamper_assert(__FILE__,__LINE__,__FUNC__, #expr, task))
+#define scamper_assert(expr, task) \
+  ((expr) ? (void)0                \
+          : __scamper_assert(__FILE__, __LINE__, __FUNC__, #expr, task))
 void __scamper_assert(const char *file, int line, const char *func,
-		      const char *expr, void *task);
+                      const char *expr, void *task);
 #endif
 
 /* only define scamper_debug if scamper is being built in debugging mode */

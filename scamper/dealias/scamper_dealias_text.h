@@ -25,6 +25,6 @@
 #define __SCAMPER_FILE_TEXT_DEALIAS_H
 
 int scamper_file_text_dealias_write(const scamper_file_t *sf,
-				    const scamper_dealias_t *dealias);
+                                    const scamper_dealias_t *dealias);
 
 #endif

@@ -81,11 +81,11 @@ void scamper_queue_empty(void);
 int scamper_queue_event_waittime(struct timeval *tv);
 int scamper_queue_event_proc(const struct timeval *tv);
 scamper_queue_t *scamper_queue_event(const struct timeval *tv,
-				     scamper_queue_event_cb_t cb, void *ptr);
+                                     scamper_queue_event_cb_t cb, void *ptr);
 int scamper_queue_event_update_time(scamper_queue_t *sq,
-				    const struct timeval *tv);
+                                    const struct timeval *tv);
 void scamper_queue_event_update_cb(scamper_queue_t *sq,
-				   scamper_queue_event_cb_t cb, void *ptr);
+                                   scamper_queue_event_cb_t cb, void *ptr);
 
 int scamper_queue_init(void);
 void scamper_queue_cleanup(void);

@@ -55,7 +55,7 @@ int scamper_fd_addr(const scamper_fd_t *fdn, void *addr, size_t len);
 
 /* this function allocates a socket that is exclusively held by the caller */
 scamper_fd_t *scamper_fd_private(int fd, void *param, scamper_fd_cb_t read_cb,
-				 scamper_fd_cb_t write_cb);
+                                 scamper_fd_cb_t write_cb);
 
 scamper_fd_t *scamper_fd_file(int fd, scamper_fd_cb_t read_cb, void *param);
 

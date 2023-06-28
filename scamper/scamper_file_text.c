@@ -33,31 +33,26 @@
 #include "scamper_file_text.h"
 #include "utils.h"
 
-int scamper_file_text_is(const scamper_file_t *sf)
-{
+int scamper_file_text_is(const scamper_file_t *sf) {
   char buf[10];
   int fd;
 
   fd = scamper_file_getfd(sf);
 
-  if(lseek(fd, 0, SEEK_SET) == -1)
-    {
+  if (lseek(fd, 0, SEEK_SET) == -1) {
+    return 0;
+  }
+
+  if (read_wrap(fd, buf, NULL, sizeof(buf)) != 0) {
+    return 0;
+  }
+
+  if (strncmp(buf, "traceroute", 10) == 0) {
+    if (lseek(fd, 0, SEEK_SET) == -1) {
       return 0;
     }
-
-  if(read_wrap(fd, buf, NULL, sizeof(buf)) != 0)
-    {
-      return 0;
-    }
-
-  if(strncmp(buf, "traceroute", 10) == 0)
-    {
-      if(lseek(fd, 0, SEEK_SET) == -1)
-	{
-	  return 0;
-	}
-      return 1;
-    }
+    return 1;
+  }
 
   return 0;
 }

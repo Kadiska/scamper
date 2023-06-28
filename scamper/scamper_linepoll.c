@@ -36,12 +36,11 @@
 #include "scamper_linepoll.h"
 #include "utils.h"
 
-struct scamper_linepoll
-{
+struct scamper_linepoll {
   scamper_linepoll_handler_t handler;
-  void    *param;
+  void *param;
   uint8_t *buf;
-  size_t   len;
+  size_t len;
 };
 
 /*
@@ -49,15 +48,12 @@ struct scamper_linepoll
  *
  *
  */
-int scamper_linepoll_flush(scamper_linepoll_t *lp)
-{
+int scamper_linepoll_flush(scamper_linepoll_t *lp) {
   void *tmp;
 
-  if(lp->len <= 0)
-    return 0;
+  if (lp->len <= 0) return 0;
 
-  if((tmp = realloc(lp->buf, lp->len+1)) == NULL)
-    return -1;
+  if ((tmp = realloc(lp->buf, lp->len + 1)) == NULL) return -1;
 
   lp->buf = tmp;
   lp->buf[lp->len] = '\0';
@@ -76,8 +72,7 @@ int scamper_linepoll_flush(scamper_linepoll_t *lp)
  * take the input buf and call lp->handler for each complete line it reads.
  * if the last read had an incomplete line, then merge the line together.
  */
-int scamper_linepoll_handle(scamper_linepoll_t *lp, uint8_t *buf, size_t len)
-{
+int scamper_linepoll_handle(scamper_linepoll_t *lp, uint8_t *buf, size_t len) {
   uint8_t *bbuf;
   size_t i = 0, s = 0, blen;
 
@@ -85,144 +80,127 @@ int scamper_linepoll_handle(scamper_linepoll_t *lp, uint8_t *buf, size_t len)
   assert(buf != NULL);
 
   /* make sure there is something in the buf */
-  if(len < 1)
-    {
-      return 0;
-    }
+  if (len < 1) {
+    return 0;
+  }
 
   /*
    * there is a partial line from the previous read, deal with it now.
    * it is dealt with by scanning for the actual end of the line in this
    * buffer, and then putting the two pieces together.
    */
-  if(lp->len > 0)
-    {
-      /* scan for the end-of-line */
-      while(i < len)
-	{
-	  /* until a \n is found, keep looking */
-	  if(buf[i] != '\n')
-	    {
-	      i++;
-	      continue;
-	    }
+  if (lp->len > 0) {
+    /* scan for the end-of-line */
+    while (i < len) {
+      /* until a \n is found, keep looking */
+      if (buf[i] != '\n') {
+        i++;
+        continue;
+      }
 
-	  /* allocate a buffer big enough to take both segments of the line */
-	  if((bbuf = malloc_zero(lp->len + i + 1)) == NULL)
-	    {
-	      return -1;
-	    }
-	  buf[i] = '\0';
-	  memcpy(bbuf, lp->buf, lp->len);
-	  memcpy(bbuf+lp->len, buf, i+1);
-	  blen = lp->len+i;
+      /* allocate a buffer big enough to take both segments of the line */
+      if ((bbuf = malloc_zero(lp->len + i + 1)) == NULL) {
+        return -1;
+      }
+      buf[i] = '\0';
+      memcpy(bbuf, lp->buf, lp->len);
+      memcpy(bbuf + lp->len, buf, i + 1);
+      blen = lp->len + i;
 
-	  /* we don't need the old buf anymore */
-	  free(lp->buf); lp->buf = NULL; lp->len = 0;
+      /* we don't need the old buf anymore */
+      free(lp->buf);
+      lp->buf = NULL;
+      lp->len = 0;
 
-	  /* drop the \r of a \r\n if necessary */
-	  if(bbuf[blen-1] == '\r')
-	    {
-	      /*
-	       * make sure that if the \r is dropped, we're not left with an
-	       * empty line
-	       */
-	      if(blen-1 > 0)
-		{
-		  bbuf[--blen] = '\0';
-		  lp->handler(lp->param, bbuf, blen);
-		}
-	    }
-	  else
-	    {
-	      /* blen should be > 0, as lp->len > 0 above */
-	      assert(blen > 0);
-	      lp->handler(lp->param, bbuf, blen);
-	    }
+      /* drop the \r of a \r\n if necessary */
+      if (bbuf[blen - 1] == '\r') {
+        /*
+         * make sure that if the \r is dropped, we're not left with an
+         * empty line
+         */
+        if (blen - 1 > 0) {
+          bbuf[--blen] = '\0';
+          lp->handler(lp->param, bbuf, blen);
+        }
+      } else {
+        /* blen should be > 0, as lp->len > 0 above */
+        assert(blen > 0);
+        lp->handler(lp->param, bbuf, blen);
+      }
 
-	  free(bbuf);
-	  break;
-	}
+      free(bbuf);
+      break;
+    }
+
+    /*
+     * if a newline was not found then merge the two buffers together
+     * and hold them for next time.
+     */
+    if (i == len) {
+      /* allocate a bigger buffer */
+      if ((bbuf = realloc(lp->buf, lp->len + len)) == NULL) {
+        return -1;
+      }
+      lp->buf = bbuf;
 
       /*
-       * if a newline was not found then merge the two buffers together
-       * and hold them for next time.
+       * copy in additional data and then increase the record held of
+       * the total length of the line so far
        */
-      if(i == len)
-	{
-	  /* allocate a bigger buffer */
-	  if((bbuf = realloc(lp->buf, lp->len + len)) == NULL)
-	    {
-	      return -1;
-	    }
-	  lp->buf = bbuf;
+      memcpy(lp->buf + lp->len, buf, len);
+      lp->len += len;
 
-	  /*
-	   * copy in additional data and then increase the record held of
-	   * the total length of the line so far
-	   */
-	  memcpy(lp->buf+lp->len, buf, len);
-	  lp->len += len;
-
-	  return 0;
-	}
-
-      s = ++i;
+      return 0;
     }
 
-  while(i < len)
-    {
-      /* skip until a new-line character is found */
-      if(buf[i] != '\n')
-	{
-	  i++;
-	  continue;
-	}
+    s = ++i;
+  }
 
-      /*
-       * if this is a blank line we don't need to pass it
-       * note that if the end-of-line sequence is \r\n, then the \r is
-       * stripped in addition to the \n
-       */
-      if(s != i)
-	{
-	  buf[i] = '\0';
-	  if(buf[i-1] != '\r')
-	    {
-	      lp->handler(lp->param, buf+s, i-s);
-	    }
-	  else if(i - 1 != 0)
-	    {
-	      buf[i-1] = '\0';
-	      lp->handler(lp->param, buf+s, i-s-1);
-	    }
-	}
-
-      /* update the starting point for the next line */
-      s = ++i;
+  while (i < len) {
+    /* skip until a new-line character is found */
+    if (buf[i] != '\n') {
+      i++;
+      continue;
     }
 
-  if(s < len)
-    {
-      if((lp->buf = malloc_zero(len - s)) == NULL)
-	{
-	  return -1;
-	}
-
-      lp->len = len - s;
-      memcpy(lp->buf, buf+s, lp->len);
+    /*
+     * if this is a blank line we don't need to pass it
+     * note that if the end-of-line sequence is \r\n, then the \r is
+     * stripped in addition to the \n
+     */
+    if (s != i) {
+      buf[i] = '\0';
+      if (buf[i - 1] != '\r') {
+        lp->handler(lp->param, buf + s, i - s);
+      } else if (i - 1 != 0) {
+        buf[i - 1] = '\0';
+        lp->handler(lp->param, buf + s, i - s - 1);
+      }
     }
+
+    /* update the starting point for the next line */
+    s = ++i;
+  }
+
+  if (s < len) {
+    if ((lp->buf = malloc_zero(len - s)) == NULL) {
+      return -1;
+    }
+
+    lp->len = len - s;
+    memcpy(lp->buf, buf + s, lp->len);
+  }
 
   return 0;
 }
 
 #ifndef DMALLOC
 scamper_linepoll_t *scamper_linepoll_alloc(scamper_linepoll_handler_t h,
-					   void *param)
+                                           void *param)
 #else
 scamper_linepoll_t *scamper_linepoll_alloc_dm(scamper_linepoll_handler_t h,
-					      void *param, const char *file,
-					      const int line)
+                                              void *param, const char *file,
+                                              const int line)
 #endif
 {
   scamper_linepoll_t *lp;
@@ -231,29 +209,25 @@ scamper_linepoll_t *scamper_linepoll_alloc_dm(scamper_linepoll_handler_t h,
 #else
   lp = malloc_zero_dm(sizeof(scamper_linepoll_t), file, line);
 #endif
-  if(lp == NULL)
-    return NULL;
+  if (lp == NULL) return NULL;
   lp->handler = h;
   lp->param = param;
   return lp;
 }
 
 void scamper_linepoll_update(scamper_linepoll_t *lp,
-			     scamper_linepoll_handler_t handler, void *param)
-{
+                             scamper_linepoll_handler_t handler, void *param) {
   lp->handler = handler;
   lp->param = param;
   return;
 }
 
-void scamper_linepoll_free(scamper_linepoll_t *lp, int feedlastline)
-{
+void scamper_linepoll_free(scamper_linepoll_t *lp, int feedlastline) {
   assert(lp != NULL);
 
-  if(feedlastline == 1)
-    scamper_linepoll_flush(lp);
+  if (feedlastline == 1) scamper_linepoll_flush(lp);
 
-  if(lp->buf != NULL) free(lp->buf);
+  if (lp->buf != NULL) free(lp->buf);
   free(lp);
 
   return;

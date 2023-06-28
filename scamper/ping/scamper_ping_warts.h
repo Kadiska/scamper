@@ -26,8 +26,8 @@
 #define __SCAMPER_FILE_WARTS_PING_H
 
 int scamper_file_warts_ping_write(const scamper_file_t *sf,
-				  const scamper_ping_t *ping);
+                                  const scamper_ping_t *ping);
 int scamper_file_warts_ping_read(scamper_file_t *sf, const warts_hdr_t *hdr,
-				 scamper_ping_t **ping_out);
+                                 scamper_ping_t **ping_out);
 
 #endif

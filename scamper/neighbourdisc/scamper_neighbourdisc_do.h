@@ -28,8 +28,8 @@ typedef struct scamper_neighbourdisc_do scamper_neighbourdisc_do_t;
 void *scamper_do_neighbourdisc_alloc(char *str);
 
 scamper_task_t *scamper_do_neighbourdisc_alloctask(void *data,
-						   scamper_list_t *list,
-						   scamper_cycle_t *cycle);
+                                                   scamper_list_t *list,
+                                                   scamper_cycle_t *cycle);
 
 int scamper_do_neighbourdisc_arg_validate(int argc, char *argv[], int *stop);
 
@@ -39,8 +39,8 @@ const char *scamper_do_neighbourdisc_usage(void);
 
 /* code to use the neighbourdisc code to do IP->MAC for another scamper task */
 scamper_neighbourdisc_do_t *scamper_do_neighbourdisc_do(
-  int ifindex, scamper_addr_t *dst,
-  void *param, void (*cb)(void *, scamper_addr_t *ip, scamper_addr_t *mac));
+    int ifindex, scamper_addr_t *dst, void *param,
+    void (*cb)(void *, scamper_addr_t *ip, scamper_addr_t *mac));
 void scamper_neighbourdisc_do_free(scamper_neighbourdisc_do_t *nddo);
 
 void scamper_do_neighbourdisc_cleanup(void);

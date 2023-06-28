@@ -27,27 +27,27 @@
 
 struct scamper_trace;
 int scamper_file_text_write_trace(const scamper_file_t *sf,
-				  const struct scamper_trace *trace);
+                                  const struct scamper_trace *trace);
 
 struct scamper_ping;
 int scamper_file_text_write_ping(const scamper_file_t *sf,
-				 const struct scamper_ping *ping);
+                                 const struct scamper_ping *ping);
 
 struct scamper_tracelb;
 int scamper_file_text_write_tracelb(const scamper_file_t *sf,
-				    const struct scamper_tracelb *trace);
+                                    const struct scamper_tracelb *trace);
 
 struct scamper_sting;
 int scamper_file_text_write_sting(const scamper_file_t *sf,
-				  const struct scamper_sting *sting);
+                                  const struct scamper_sting *sting);
 
 struct scamper_dealias;
 int scamper_file_text_write_dealias(const scamper_file_t *sf,
-				    const struct scamper_dealias *dealias);
+                                    const struct scamper_dealias *dealias);
 
 struct scamper_tbit;
 int scamper_file_text_write_tbit(const scamper_file_t *sf,
-				 const struct scamper_tbit *tbit);
+                                 const struct scamper_tbit *tbit);
 
 int scamper_file_text_is(const scamper_file_t *sf);
 

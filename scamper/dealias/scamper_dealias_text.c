@@ -35,30 +35,27 @@
 #include "utils.h"
 
 int scamper_file_text_dealias_write(const scamper_file_t *sf,
-				    const scamper_dealias_t *dealias)
-{
+                                    const scamper_dealias_t *dealias) {
   scamper_dealias_ally_t *ally;
   char buf[256], a[64], b[64], c[32];
   int fd = scamper_file_getfd(sf);
 
-  if(SCAMPER_DEALIAS_METHOD_IS_ALLY(dealias))
-    {
-      ally = dealias->data;
-      if(dealias->result == SCAMPER_DEALIAS_RESULT_ALIASES)
-	snprintf(c, sizeof(c), "aliases");
-      else if(dealias->result == SCAMPER_DEALIAS_RESULT_NOTALIASES)
-	snprintf(c, sizeof(c), "not aliases");
-      else if(dealias->result == SCAMPER_DEALIAS_RESULT_NONE)
-	snprintf(c, sizeof(c), "none");
-      else
-	snprintf(c, sizeof(c), "%d", dealias->result);
+  if (SCAMPER_DEALIAS_METHOD_IS_ALLY(dealias)) {
+    ally = dealias->data;
+    if (dealias->result == SCAMPER_DEALIAS_RESULT_ALIASES)
+      snprintf(c, sizeof(c), "aliases");
+    else if (dealias->result == SCAMPER_DEALIAS_RESULT_NOTALIASES)
+      snprintf(c, sizeof(c), "not aliases");
+    else if (dealias->result == SCAMPER_DEALIAS_RESULT_NONE)
+      snprintf(c, sizeof(c), "none");
+    else
+      snprintf(c, sizeof(c), "%d", dealias->result);
 
-      snprintf(buf, sizeof(buf), "%s %s %s\n",
-	       scamper_addr_tostr(ally->probedefs[0].dst, a, sizeof(a)),
-	       scamper_addr_tostr(ally->probedefs[1].dst, b, sizeof(b)),
-	       c);
+    snprintf(buf, sizeof(buf), "%s %s %s\n",
+             scamper_addr_tostr(ally->probedefs[0].dst, a, sizeof(a)),
+             scamper_addr_tostr(ally->probedefs[1].dst, b, sizeof(b)), c);
 
-      write_wrap(fd, buf, NULL, strlen(buf));
-    }
+    write_wrap(fd, buf, NULL, strlen(buf));
+  }
   return 0;
 }

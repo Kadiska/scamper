@@ -30,7 +30,7 @@ int scamper_udp6_open(const void *addr, int sport);
 void scamper_udp6_close(int fd);
 
 int scamper_udp6_open_err(const void *addr, int sport);
-void scamper_udp6_read_err_cb(void * fd, void *param);
+void scamper_udp6_read_err_cb(void *fd, void *param);
 
 #ifdef __SCAMPER_PROBE_H
 int scamper_udp6_probe(scamper_probe_t *probe);

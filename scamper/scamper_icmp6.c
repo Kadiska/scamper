@@ -39,37 +39,35 @@
 #include "utils.h"
 
 static uint8_t *txbuf = NULL;
-static size_t   txbuf_len = 0;
-static uint8_t  rxbuf[65536];
+static size_t txbuf_len = 0;
+static uint8_t rxbuf[65536];
 
-static void icmp6_header(scamper_probe_t *probe, uint8_t *buf)
-{
+static void icmp6_header(scamper_probe_t *probe, uint8_t *buf) {
   buf[0] = probe->pr_icmp_type;
   buf[1] = 0;
-  buf[2] = 0; buf[3] = 0;
+  buf[2] = 0;
+  buf[3] = 0;
 
-  switch(probe->pr_icmp_type)
-    {
+  switch (probe->pr_icmp_type) {
     case ICMP6_ECHO_REQUEST:
     case ICMP6_ECHO_REPLY:
-      bytes_htons(buf+4, probe->pr_icmp_id);
-      bytes_htons(buf+6, probe->pr_icmp_seq);
+      bytes_htons(buf + 4, probe->pr_icmp_id);
+      bytes_htons(buf + 6, probe->pr_icmp_seq);
       break;
 
     case ICMP6_PACKET_TOO_BIG:
-      bytes_htonl(buf+4, probe->pr_icmp_mtu);
+      bytes_htonl(buf + 4, probe->pr_icmp_mtu);
       break;
 
     default:
-      memset(buf+4, 0, 4);
+      memset(buf + 4, 0, 4);
       break;
-    }
+  }
 
   return;
 }
 
-uint16_t scamper_pcap_icmp6_cksum(scamper_probe_t *probe)
-{
+uint16_t scamper_pcap_icmp6_cksum(scamper_probe_t *probe) {
   uint8_t hdr[8];
   uint16_t tmp, *w;
   int i, sum = 0;
@@ -81,44 +79,52 @@ uint16_t scamper_pcap_icmp6_cksum(scamper_probe_t *probe)
    * was only over the payload of the packet
    */
   w = (uint16_t *)probe->pr_ip_src->addr;
-  sum += *w++; sum += *w++; sum += *w++; sum += *w++;
-  sum += *w++; sum += *w++; sum += *w++; sum += *w++;
+  sum += *w++;
+  sum += *w++;
+  sum += *w++;
+  sum += *w++;
+  sum += *w++;
+  sum += *w++;
+  sum += *w++;
+  sum += *w++;
   w = (uint16_t *)probe->pr_ip_dst->addr;
-  sum += *w++; sum += *w++; sum += *w++; sum += *w++;
-  sum += *w++; sum += *w++; sum += *w++; sum += *w++;
+  sum += *w++;
+  sum += *w++;
+  sum += *w++;
+  sum += *w++;
+  sum += *w++;
+  sum += *w++;
+  sum += *w++;
+  sum += *w++;
   sum += htons(probe->pr_len + 8);
   sum += htons(IPPROTO_ICMPV6);
 
   /* ICMP header */
   icmp6_header(probe, hdr);
   w = (uint16_t *)hdr;
-  for(i=0; i<8; i+=2)
-    sum += *w++;
+  for (i = 0; i < 8; i += 2) sum += *w++;
 
   /* payload */
   w = (uint16_t *)probe->pr_data;
-  for(i = probe->pr_len; i > 1; i -= 2)
-    sum += *w++;
-  if(i != 0)
-    sum += ((uint8_t *)w)[0];
+  for (i = probe->pr_len; i > 1; i -= 2) sum += *w++;
+  if (i != 0) sum += ((uint8_t *)w)[0];
 
   /* fold the checksum */
-  sum  = (sum >> 16) + (sum & 0xffff);
+  sum = (sum >> 16) + (sum & 0xffff);
   sum += (sum >> 16);
 
-  if((tmp = ~sum) == 0)
-    {
-      tmp = 0xffff;
-    }
+  if ((tmp = ~sum) == 0) {
+    tmp = 0xffff;
+  }
 
   return tmp;
 }
 
-int scamper_pcap_icmp6_build(scamper_probe_t *probe, uint8_t *buf, size_t *len)
-{
-  struct ip6_hdr   *ip6;
+int scamper_pcap_icmp6_build(scamper_probe_t *probe, uint8_t *buf,
+                             size_t *len) {
+  struct ip6_hdr *ip6;
   struct icmp6_hdr *icmp;
-  size_t            ip6hlen, req, icmp6hlen;
+  size_t ip6hlen, req, icmp6hlen;
 
   /*
    * build the IPv6 header; pass in the total buffer space available in
@@ -134,43 +140,40 @@ int scamper_pcap_icmp6_build(scamper_probe_t *probe, uint8_t *buf, size_t *len)
   /* calculate the total number of bytes required for this packet */
   req = ip6hlen + icmp6hlen + probe->pr_len;
 
-  if(req <= *len)
-    {
-      /*
-       * calculate and record the ip6_plen value.
-       * any IPv6 extension headers present are considered part of the payload
-       */
-      ip6 = (struct ip6_hdr *)buf;
-      ip6->ip6_plen = htons(ip6hlen - 40 + icmp6hlen + probe->pr_len);
+  if (req <= *len) {
+    /*
+     * calculate and record the ip6_plen value.
+     * any IPv6 extension headers present are considered part of the payload
+     */
+    ip6 = (struct ip6_hdr *)buf;
+    ip6->ip6_plen = htons(ip6hlen - 40 + icmp6hlen + probe->pr_len);
 
-      /* build the icmp6 header */
-      icmp = (struct icmp6_hdr *)(buf + ip6hlen);
-      icmp6_header(probe, buf+ip6hlen);
+    /* build the icmp6 header */
+    icmp = (struct icmp6_hdr *)(buf + ip6hlen);
+    icmp6_header(probe, buf + ip6hlen);
 
-      /* if there is data to include in the payload, copy it in now */
-      if(probe->pr_len > 0)
-	{
-	  memcpy(buf + ip6hlen + icmp6hlen, probe->pr_data, probe->pr_len);
-	}
-
-      /* compute the ICMP6 checksum */
-      icmp->icmp6_cksum = scamper_pcap_icmp6_cksum(probe);
-
-      *len = req;
-      return 0;
+    /* if there is data to include in the payload, copy it in now */
+    if (probe->pr_len > 0) {
+      memcpy(buf + ip6hlen + icmp6hlen, probe->pr_data, probe->pr_len);
     }
+
+    /* compute the ICMP6 checksum */
+    icmp->icmp6_cksum = scamper_pcap_icmp6_cksum(probe);
+
+    *len = req;
+    return 0;
+  }
 
   *len = req;
   return -1;
 }
 
-int scamper_pcap_icmp6_probe(scamper_probe_t *probe)
-{
-  struct sockaddr_in6  sin6;
-  struct icmp6_hdr    *icmp;
-  char                 addr[128];
-  size_t               len, icmphdrlen;
-  int                  i;
+int scamper_pcap_icmp6_probe(scamper_probe_t *probe) {
+  struct sockaddr_in6 sin6;
+  struct icmp6_hdr *icmp;
+  char addr[128];
+  size_t len, icmphdrlen;
+  int i;
 
   assert(probe != NULL);
   assert(probe->pr_ip_proto == IPPROTO_ICMPV6);
@@ -178,72 +181,64 @@ int scamper_pcap_icmp6_probe(scamper_probe_t *probe)
   assert(probe->pr_ip_src != NULL);
   assert(probe->pr_len > 0 || probe->pr_data == NULL);
 
-  if(probe->pr_icmp_type != ICMP6_ECHO_REQUEST)
-    {
-      probe->pr_errno = EINVAL;
-      return -1;
-    }
+  if (probe->pr_icmp_type != ICMP6_ECHO_REQUEST) {
+    probe->pr_errno = EINVAL;
+    return -1;
+  }
 
   icmphdrlen = (1 + 1 + 2 + 2 + 2);
   len = probe->pr_len + icmphdrlen;
 
   i = probe->pr_ip_ttl;
-  if(setsockopt(probe->pr_fd,
-		IPPROTO_IPV6, IPV6_UNICAST_HOPS, (char *)&i, sizeof(i)) == -1)
-    {
-      printerror(__func__, "could not set hlim to %d", i);
+  if (setsockopt(probe->pr_fd, IPPROTO_IPV6, IPV6_UNICAST_HOPS, (char *)&i,
+                 sizeof(i)) == -1) {
+    printerror(__func__, "could not set hlim to %d", i);
+    return -1;
+  }
+
+  if (txbuf_len < len) {
+    if (realloc_wrap((void **)&txbuf, len) != 0) {
+      printerror(__func__, "could not realloc");
       return -1;
     }
-
-  if(txbuf_len < len)
-    {
-      if(realloc_wrap((void **)&txbuf, len) != 0)
-	{
-	  printerror(__func__, "could not realloc");
-	  return -1;
-	}
-      txbuf_len = len;
-    }
+    txbuf_len = len;
+  }
 
   icmp = (struct icmp6_hdr *)txbuf;
-  icmp->icmp6_type  = probe->pr_icmp_type;
-  icmp->icmp6_code  = probe->pr_icmp_code;
+  icmp->icmp6_type = probe->pr_icmp_type;
+  icmp->icmp6_code = probe->pr_icmp_code;
   icmp->icmp6_cksum = 0;
-  icmp->icmp6_id    = htons(probe->pr_icmp_id);
-  icmp->icmp6_seq   = htons(probe->pr_icmp_seq);
+  icmp->icmp6_id = htons(probe->pr_icmp_id);
+  icmp->icmp6_seq = htons(probe->pr_icmp_seq);
 
   /* if there is data to include in the payload, copy it in now */
-  if(probe->pr_len > 0)
-    {
-      memcpy(txbuf + icmphdrlen, probe->pr_data, probe->pr_len);
-    }
+  if (probe->pr_len > 0) {
+    memcpy(txbuf + icmphdrlen, probe->pr_data, probe->pr_len);
+  }
 
-  sockaddr_compose((struct sockaddr *)&sin6, AF_INET6,
-		   probe->pr_ip_dst->addr, 0);
+  sockaddr_compose((struct sockaddr *)&sin6, AF_INET6, probe->pr_ip_dst->addr,
+                   0);
 
   /* get the transmit time immediately before we send the packet */
   gettimeofday_wrap(&probe->pr_tx);
 
   i = sendto(probe->pr_fd, txbuf, len, 0, (struct sockaddr *)&sin6,
-	     sizeof(struct sockaddr_in6));
+             sizeof(struct sockaddr_in6));
 
-  if(i < 0)
-    {
-      /* error condition, could not send the packet at all */
-      probe->pr_errno = errno;
-      printerror(__func__, "could not send to %s (%d ttl, %d seq, %d len)",
-		 scamper_addr_tostr(probe->pr_ip_dst, addr, sizeof(addr)),
-		 probe->pr_ip_ttl, probe->pr_icmp_seq, len);
-      return -1;
-    }
-  else if((size_t)i != len)
-    {
-      /* error condition, sent a portion of the probe */
-      printerror_msg(__func__, "sent %d bytes of %d byte packet to %s",
-		     i, (int)len,
-		     scamper_addr_tostr(probe->pr_ip_dst, addr, sizeof(addr)));
-      return -1;
-    }
+  if (i < 0) {
+    /* error condition, could not send the packet at all */
+    probe->pr_errno = errno;
+    printerror(__func__, "could not send to %s (%d ttl, %d seq, %d len)",
+               scamper_addr_tostr(probe->pr_ip_dst, addr, sizeof(addr)),
+               probe->pr_ip_ttl, probe->pr_icmp_seq, len);
+    return -1;
+  } else if ((size_t)i != len) {
+    /* error condition, sent a portion of the probe */
+    printerror_msg(__func__, "sent %d bytes of %d byte packet to %s", i,
+                   (int)len,
+                   scamper_addr_tostr(probe->pr_ip_dst, addr, sizeof(addr)));
+    return -1;
+  }
 
   return 0;
 }
@@ -254,25 +249,25 @@ int scamper_pcap_icmp6_probe(scamper_probe_t *probe)
  * copy the outer-details of the ICMP6 message into the response structure.
  * get details of when the packet was received.
  */
-static void icmp6_recv_ip_outer(struct pcap_pkthdr* header,
-    int fd, scamper_icmp_resp_t *resp, struct icmp6_hdr *icmp,
-	struct sockaddr_in6 *from, size_t size)
-{
+static void icmp6_recv_ip_outer(struct pcap_pkthdr *header, int fd,
+                                scamper_icmp_resp_t *resp,
+                                struct icmp6_hdr *icmp,
+                                struct sockaddr_in6 *from, size_t size) {
   int16_t hlim = -1;
 
   timeval_cpy(&(resp->ir_rx), &(header->ts));
   resp->ir_flags |= SCAMPER_ICMP_RESP_FLAG_KERNRX;
 
-  if((resp->ir_flags & SCAMPER_ICMP_RESP_FLAG_KERNRX) == 0)
+  if ((resp->ir_flags & SCAMPER_ICMP_RESP_FLAG_KERNRX) == 0)
     gettimeofday_wrap(&resp->ir_rx);
 
   memcpy(&resp->ir_ip_src.v6, &from->sin6_addr, sizeof(struct in6_addr));
 
-  resp->ir_af        = AF_INET6;
+  resp->ir_af = AF_INET6;
   resp->ir_icmp_type = icmp->icmp6_type;
   resp->ir_icmp_code = icmp->icmp6_code;
-  resp->ir_ip_hlim   = hlim;
-  resp->ir_ip_size   = size;
+  resp->ir_ip_hlim = hlim;
+  resp->ir_ip_size = size;
 
   return;
 }
@@ -289,196 +284,176 @@ static void icmp6_recv_ip_outer(struct pcap_pkthdr* header,
  * if we should ignore this packet, or an error condition occurs, then
  * we return -1.
  */
-int scamper_pcap_icmp6_recv(scamper_pcap_t *pcap, scamper_icmp_resp_t *resp)
-{
-  struct               pcap_pkthdr header;
-  const u_char         *packet;
+int scamper_pcap_icmp6_recv(scamper_pcap_t *pcap, scamper_icmp_resp_t *resp) {
+  struct pcap_pkthdr header;
+  const u_char *packet;
 
-  struct sockaddr_in6  from;
-  ssize_t              poffset;
-  ssize_t              pbuflen;
-  struct icmp6_hdr    *icmp, *icmpq;
-  struct ip6_hdr      *ip;
-  struct ip6_frag     *frag;
-  struct udphdr       *udp;
-  struct tcphdr       *tcp;
-  uint8_t              type, code;
-  uint8_t              nh;
-  uint8_t             *ext;
-  ssize_t              extlen;
-  int                  offset_packet = 0;
+  struct sockaddr_in6 from;
+  ssize_t poffset;
+  ssize_t pbuflen;
+  struct icmp6_hdr *icmp, *icmpq;
+  struct ip6_hdr *ip;
+  struct ip6_frag *frag;
+  struct udphdr *udp;
+  struct tcphdr *tcp;
+  uint8_t type, code;
+  uint8_t nh;
+  uint8_t *ext;
+  ssize_t extlen;
+  int offset_packet = 0;
 
   packet = pcap_next(pcap->pcap, &header);
 
   // Ethernet header frame is 14 bytes long while IPv6 header is 40 bytes long
-  if (header.len < 14)
-      return -1;
+  if (header.len < 14) return -1;
 
   pbuflen = header.len - 14;
   packet += 14;
 
-  ip       = (struct ip6_hdr *)(packet);
+  ip = (struct ip6_hdr *)(packet);
   from.sin6_family = AF_INET6;
   memcpy(&(from.sin6_addr), &(ip->ip6_src), sizeof(ip->ip6_src));
 
-  memcpy(rxbuf, packet + sizeof(struct ip6_hdr), pbuflen - sizeof(struct ip6_hdr));
+  memcpy(rxbuf, packet + sizeof(struct ip6_hdr),
+         pbuflen - sizeof(struct ip6_hdr));
   pbuflen -= sizeof(struct ip6_hdr);
 
   icmp = (struct icmp6_hdr *)rxbuf;
-  if(pbuflen < (ssize_t)sizeof(struct icmp6_hdr))
-    {
-      return -1;
-    }
+  if (pbuflen < (ssize_t)sizeof(struct icmp6_hdr)) {
+    return -1;
+  }
 
   type = icmp->icmp6_type;
   code = icmp->icmp6_code;
 
   /* check to see if the ICMP type / code is what we want */
-  if((type != ICMP6_TIME_EXCEEDED || code != ICMP6_TIME_EXCEED_TRANSIT) &&
+  if ((type != ICMP6_TIME_EXCEEDED || code != ICMP6_TIME_EXCEED_TRANSIT) &&
       type != ICMP6_DST_UNREACH && type != ICMP6_PACKET_TOO_BIG &&
-      type != ICMP6_ECHO_REPLY)
-    {
-      scamper_debug(__func__,"ICMP6 type %d / code %d not wanted", type, code);
-      return -1;
-    }
+      type != ICMP6_ECHO_REPLY) {
+    scamper_debug(__func__, "ICMP6 type %d / code %d not wanted", type, code);
+    return -1;
+  }
 
-  poffset  = sizeof(struct icmp6_hdr);
-  ip       = (struct ip6_hdr *)(rxbuf + poffset);
+  poffset = sizeof(struct icmp6_hdr);
+  ip = (struct ip6_hdr *)(rxbuf + poffset);
 
   memset(resp, 0, sizeof(scamper_icmp_resp_t));
 
   resp->ir_fd = pcap->fd;
 
-  if(type == ICMP6_ECHO_REPLY)
-    {
-      resp->ir_icmp_id  = ntohs(icmp->icmp6_id);
-      resp->ir_icmp_seq = ntohs(icmp->icmp6_seq);
-      memcpy(&resp->ir_inner_ip_dst.v6, &from.sin6_addr,
-	     sizeof(struct in6_addr));
+  if (type == ICMP6_ECHO_REPLY) {
+    resp->ir_icmp_id = ntohs(icmp->icmp6_id);
+    resp->ir_icmp_seq = ntohs(icmp->icmp6_seq);
+    memcpy(&resp->ir_inner_ip_dst.v6, &from.sin6_addr, sizeof(struct in6_addr));
 
-      icmp6_recv_ip_outer(&header, pcap->fd,resp,icmp,&from,pbuflen+sizeof(struct ip6_hdr));
+    icmp6_recv_ip_outer(&header, pcap->fd, resp, icmp, &from,
+                        pbuflen + sizeof(struct ip6_hdr));
 
-      return 0;
-    }
+    return 0;
+  }
 
-  nh       = ip->ip6_nxt;
+  nh = ip->ip6_nxt;
   poffset += sizeof(struct ip6_hdr);
 
   /* search for a ICMP / UDP / TCP header in this packet */
-  while(poffset + 8 <= pbuflen)
-    {
-      if(nh != IPPROTO_UDP && nh != IPPROTO_ICMPV6 && nh != IPPROTO_TCP &&
-	 nh != IPPROTO_FRAGMENT)
-        {
-	  scamper_debug(__func__, "unhandled next header %d", nh);
-	  return -1;
-	}
-
-      resp->ir_flags |= SCAMPER_ICMP_RESP_FLAG_INNER_IP;
-
-      if(nh == IPPROTO_UDP)
-	{
-          udp = (struct udphdr *)(rxbuf+poffset);
-	  resp->ir_inner_udp_sport = ntohs(udp->uh_sport);
-	  resp->ir_inner_udp_dport = ntohs(udp->uh_dport);
-	  resp->ir_inner_udp_sum   = udp->uh_sum;
-	}
-      else if(nh == IPPROTO_ICMPV6)
-	{
-	  icmpq = (struct icmp6_hdr *)(rxbuf+poffset);
-	  resp->ir_inner_icmp_type = icmpq->icmp6_type;
-	  resp->ir_inner_icmp_code = icmpq->icmp6_code;
-	  resp->ir_inner_icmp_sum  = icmpq->icmp6_cksum;
-	  resp->ir_inner_icmp_id   = ntohs(icmpq->icmp6_id);
-	  resp->ir_inner_icmp_seq  = ntohs(icmpq->icmp6_seq);
-	}
-      else if(nh == IPPROTO_TCP)
-	{
-	  tcp = (struct tcphdr *)(rxbuf+poffset);
-	  resp->ir_inner_tcp_sport = ntohs(tcp->th_sport);
-	  resp->ir_inner_tcp_dport = ntohs(tcp->th_dport);
-	  resp->ir_inner_tcp_seq   = ntohl(tcp->th_seq);
-	}
-      else if(nh == IPPROTO_FRAGMENT)
-	{
-	  frag = (struct ip6_frag *)(rxbuf+poffset);
-	  resp->ir_inner_ip_proto = nh = frag->ip6f_nxt;
-	  resp->ir_inner_ip_off = ntohs(frag->ip6f_offlg) >> 3;
-	  resp->ir_inner_ip_id  = ntohl(frag->ip6f_ident);
-	  poffset += 8;
-
-	  if(resp->ir_inner_ip_off == 0)
-	    continue;
-
-	  resp->ir_inner_data = rxbuf + poffset;
-	  resp->ir_inner_datalen = pbuflen - poffset;
-	}
-
-      /* record details of the IP header and the ICMP headers */
-      icmp6_recv_ip_outer(&header, pcap->fd,resp,icmp,&from,pbuflen+sizeof(struct ip6_hdr));
-
-      memcpy(&resp->ir_inner_ip_dst.v6, &ip->ip6_dst, sizeof(struct in6_addr));
-      resp->ir_inner_ip_proto = nh;
-      resp->ir_inner_ip_hlim  = ip->ip6_hlim;
-      resp->ir_inner_ip_size  = ntohs(ip->ip6_plen) + sizeof(struct ip6_hdr);
-      resp->ir_inner_ip_flow  = ntohl(ip->ip6_flow) & 0xfffff;
-
-      if(type == ICMP6_PACKET_TOO_BIG)
-	resp->ir_icmp_nhmtu = (ntohl(icmp->icmp6_mtu) % 0xffff);
-
-      /*
-       * check for ICMP extensions
-       *
-       * the length of the message must be at least padded out to 128 bytes,
-       * and must have 4 bytes of header beyond that for there to be
-       * extensions included
-       */
-      if(pbuflen - 8 > 128 + 4)
-	{
-	  ext    = rxbuf   + (8 + 128);
-	  extlen = pbuflen - (8 + 128);
-
-	  if((ext[0] & 0xf0) == 0x20 &&
-	     ((ext[2] == 0 && ext[3] == 0) || in_cksum(ext, extlen) == 0))
-	    {
-	      resp->ir_ext    = memdup(ext, extlen);
-	      resp->ir_extlen = extlen;
-	    }
-	}
-
-      return 0;
+  while (poffset + 8 <= pbuflen) {
+    if (nh != IPPROTO_UDP && nh != IPPROTO_ICMPV6 && nh != IPPROTO_TCP &&
+        nh != IPPROTO_FRAGMENT) {
+      scamper_debug(__func__, "unhandled next header %d", nh);
+      return -1;
     }
+
+    resp->ir_flags |= SCAMPER_ICMP_RESP_FLAG_INNER_IP;
+
+    if (nh == IPPROTO_UDP) {
+      udp = (struct udphdr *)(rxbuf + poffset);
+      resp->ir_inner_udp_sport = ntohs(udp->uh_sport);
+      resp->ir_inner_udp_dport = ntohs(udp->uh_dport);
+      resp->ir_inner_udp_sum = udp->uh_sum;
+    } else if (nh == IPPROTO_ICMPV6) {
+      icmpq = (struct icmp6_hdr *)(rxbuf + poffset);
+      resp->ir_inner_icmp_type = icmpq->icmp6_type;
+      resp->ir_inner_icmp_code = icmpq->icmp6_code;
+      resp->ir_inner_icmp_sum = icmpq->icmp6_cksum;
+      resp->ir_inner_icmp_id = ntohs(icmpq->icmp6_id);
+      resp->ir_inner_icmp_seq = ntohs(icmpq->icmp6_seq);
+    } else if (nh == IPPROTO_TCP) {
+      tcp = (struct tcphdr *)(rxbuf + poffset);
+      resp->ir_inner_tcp_sport = ntohs(tcp->th_sport);
+      resp->ir_inner_tcp_dport = ntohs(tcp->th_dport);
+      resp->ir_inner_tcp_seq = ntohl(tcp->th_seq);
+    } else if (nh == IPPROTO_FRAGMENT) {
+      frag = (struct ip6_frag *)(rxbuf + poffset);
+      resp->ir_inner_ip_proto = nh = frag->ip6f_nxt;
+      resp->ir_inner_ip_off = ntohs(frag->ip6f_offlg) >> 3;
+      resp->ir_inner_ip_id = ntohl(frag->ip6f_ident);
+      poffset += 8;
+
+      if (resp->ir_inner_ip_off == 0) continue;
+
+      resp->ir_inner_data = rxbuf + poffset;
+      resp->ir_inner_datalen = pbuflen - poffset;
+    }
+
+    /* record details of the IP header and the ICMP headers */
+    icmp6_recv_ip_outer(&header, pcap->fd, resp, icmp, &from,
+                        pbuflen + sizeof(struct ip6_hdr));
+
+    memcpy(&resp->ir_inner_ip_dst.v6, &ip->ip6_dst, sizeof(struct in6_addr));
+    resp->ir_inner_ip_proto = nh;
+    resp->ir_inner_ip_hlim = ip->ip6_hlim;
+    resp->ir_inner_ip_size = ntohs(ip->ip6_plen) + sizeof(struct ip6_hdr);
+    resp->ir_inner_ip_flow = ntohl(ip->ip6_flow) & 0xfffff;
+
+    if (type == ICMP6_PACKET_TOO_BIG)
+      resp->ir_icmp_nhmtu = (ntohl(icmp->icmp6_mtu) % 0xffff);
+
+    /*
+     * check for ICMP extensions
+     *
+     * the length of the message must be at least padded out to 128 bytes,
+     * and must have 4 bytes of header beyond that for there to be
+     * extensions included
+     */
+    if (pbuflen - 8 > 128 + 4) {
+      ext = rxbuf + (8 + 128);
+      extlen = pbuflen - (8 + 128);
+
+      if ((ext[0] & 0xf0) == 0x20 &&
+          ((ext[2] == 0 && ext[3] == 0) || in_cksum(ext, extlen) == 0)) {
+        resp->ir_ext = memdup(ext, extlen);
+        resp->ir_extlen = extlen;
+      }
+    }
+
+    return 0;
+  }
 
   return -1;
 }
 
-void scamper_pcap_icmp6_read_cb(scamper_pcap_t * pcap, void *param)
-{
+void scamper_pcap_icmp6_read_cb(scamper_pcap_t *pcap, void *param) {
   scamper_icmp_resp_t ir;
 
   memset(&ir, 0, sizeof(ir));
 
-  if(scamper_pcap_icmp6_recv(pcap, &ir) == 0)
-    scamper_icmp_resp_handle(&ir);
+  if (scamper_pcap_icmp6_recv(pcap, &ir) == 0) scamper_icmp_resp_handle(&ir);
 
   scamper_icmp_resp_clean(&ir);
 
   return;
 }
 
-void scamper_pcap_icmp6_cleanup()
-{
-  if(txbuf != NULL)
-    {
-      free(txbuf);
-      txbuf = NULL;
-    }
+void scamper_pcap_icmp6_cleanup() {
+  if (txbuf != NULL) {
+    free(txbuf);
+    txbuf = NULL;
+  }
 
   return;
 }
 
-void scamper_pcap_icmp6_close(pcap_t * pcap)
-{
+void scamper_pcap_icmp6_close(pcap_t *pcap) {
   pcap_close(pcap);
   return;
 }
@@ -486,111 +461,115 @@ void scamper_pcap_icmp6_close(pcap_t * pcap)
 
 #define DEVICE_NAME_SIZE MAX_ADAPTER_NAME_LENGTH + 4 + 12
 
-static int had_match(struct in6_addr * expected_ip, PIP_ADAPTER_UNICAST_ADDRESS ips)
-{
-    if (ips == NULL) return 0;
-    struct sockaddr_in6 * ip = (ips->Address.lpSockaddr);
-    if (memcmp(expected_ip, &(ip->sin6_addr), sizeof(IN6_ADDR)) == 0) return 1;
-    else return had_match(expected_ip, ips->Next);
+static int had_match(struct in6_addr *expected_ip,
+                     PIP_ADAPTER_UNICAST_ADDRESS ips) {
+  if (ips == NULL) return 0;
+  struct sockaddr_in6 *ip = (ips->Address.lpSockaddr);
+  if (memcmp(expected_ip, &(ip->sin6_addr), sizeof(IN6_ADDR)) == 0)
+    return 1;
+  else
+    return had_match(expected_ip, ips->Next);
 }
 
-static int get_device_name_by_ip(char * name, struct in6_addr * expected_ip)
-{
-    PIP_ADAPTER_ADDRESSES  pAdapterInfo = NULL;
-    PIP_ADAPTER_ADDRESSES  pAdapter = NULL;
-    DWORD dwRetVal = 0;
-    UINT i;
-    int ret = 0;
+static int get_device_name_by_ip(char *name, struct in6_addr *expected_ip) {
+  PIP_ADAPTER_ADDRESSES pAdapterInfo = NULL;
+  PIP_ADAPTER_ADDRESSES pAdapter = NULL;
+  DWORD dwRetVal = 0;
+  UINT i;
+  int ret = 0;
 
-    ULONG ulOutBufLen = sizeof(IP_ADAPTER_ADDRESSES_LH);
-    pAdapterInfo = (PIP_ADAPTER_ADDRESSES*)malloc(ulOutBufLen);
+  ULONG ulOutBufLen = sizeof(IP_ADAPTER_ADDRESSES_LH);
+  pAdapterInfo = (PIP_ADAPTER_ADDRESSES *)malloc(ulOutBufLen);
+  if (pAdapterInfo == NULL) {
+    printf("Error allocating memory needed to call GetAdaptersinfo\n");
+    return 1;
+  }
+
+  // Make an initial call to GetAdaptersInfo to get
+  // the necessary size into the ulOutBufLen variable
+  if (GetAdaptersAddresses(
+          AF_INET6,
+          GAA_FLAG_INCLUDE_GATEWAYS | GAA_FLAG_INCLUDE_WINS_INFO |
+              GAA_FLAG_SKIP_ANYCAST | GAA_FLAG_SKIP_MULTICAST,
+          0, pAdapterInfo, &ulOutBufLen) == ERROR_BUFFER_OVERFLOW) {
+    free(pAdapterInfo);
+    pAdapterInfo = (IP_ADAPTER_INFO *)malloc(ulOutBufLen);
     if (pAdapterInfo == NULL) {
-        printf("Error allocating memory needed to call GetAdaptersinfo\n");
-        return 1;
+      printf("Error allocating memory needed to call GetAdaptersinfo\n");
+      return 1;
     }
+  }
 
-    // Make an initial call to GetAdaptersInfo to get
-    // the necessary size into the ulOutBufLen variable
-    if (GetAdaptersAddresses(AF_INET6, GAA_FLAG_INCLUDE_GATEWAYS | GAA_FLAG_INCLUDE_WINS_INFO | GAA_FLAG_SKIP_ANYCAST | GAA_FLAG_SKIP_MULTICAST, 0, pAdapterInfo, &ulOutBufLen) == ERROR_BUFFER_OVERFLOW) {
-        free(pAdapterInfo);
-        pAdapterInfo = (IP_ADAPTER_INFO*)malloc(ulOutBufLen);
-        if (pAdapterInfo == NULL) {
-            printf("Error allocating memory needed to call GetAdaptersinfo\n");
-            return 1;
-        }
+  if (GetAdaptersAddresses(AF_INET6,
+                           GAA_FLAG_INCLUDE_GATEWAYS |
+                               GAA_FLAG_INCLUDE_WINS_INFO |
+                               GAA_FLAG_SKIP_ANYCAST | GAA_FLAG_SKIP_MULTICAST,
+                           0, pAdapterInfo, &ulOutBufLen) != NO_ERROR)
+    return 1;
+  pAdapter = pAdapterInfo;
+  while (pAdapter) {
+    if (had_match(expected_ip, pAdapter->FirstUnicastAddress)) {
+      if (pAdapter->IfType == IF_TYPE_SOFTWARE_LOOPBACK) {
+        strcpy(name, "\\Device\\NPF_Loopback");
+      } else {
+        strcpy(name, "\\Device\\NPF_");
+        strcat(name, pAdapter->AdapterName);
+      }
+      goto cleanup;
     }
-
-    if (GetAdaptersAddresses(AF_INET6, GAA_FLAG_INCLUDE_GATEWAYS | GAA_FLAG_INCLUDE_WINS_INFO | GAA_FLAG_SKIP_ANYCAST | GAA_FLAG_SKIP_MULTICAST, 0, pAdapterInfo, &ulOutBufLen) != NO_ERROR)
-        return 1;
-    pAdapter = pAdapterInfo;
-    while (pAdapter) {
-        if (had_match(expected_ip, pAdapter->FirstUnicastAddress)) {
-            if (pAdapter->IfType == IF_TYPE_SOFTWARE_LOOPBACK) {
-                strcpy(name, "\\Device\\NPF_Loopback");
-            }
-            else {
-                strcpy(name, "\\Device\\NPF_");
-                strcat(name, pAdapter->AdapterName);
-            }
-            goto cleanup;
-        }
-        pAdapter = pAdapter->Next;
-    }
-    ret = -1;
+    pAdapter = pAdapter->Next;
+  }
+  ret = -1;
 
 cleanup:
-    if (pAdapterInfo != NULL) free(pAdapterInfo);
-    return ret;
+  if (pAdapterInfo != NULL) free(pAdapterInfo);
+  return ret;
 }
 
 #else
 
 #define DEVICE_NAME_SIZE IFNAMSIZ
 
-static int get_device_name_by_ip(char * name, struct in6_addr * expected_ip)
-{
-    int ret = 0;
-    struct ifaddrs *addrs = NULL;
+static int get_device_name_by_ip(char *name, struct in6_addr *expected_ip) {
+  int ret = 0;
+  struct ifaddrs *addrs = NULL;
 
-    if (getifaddrs(&addrs) != 0)
-        return 1;
+  if (getifaddrs(&addrs) != 0) return 1;
 
-    for (struct ifaddrs * addr = addrs; addr != NULL; addr = addr->ifa_next)
-    {
-        if (addr->ifa_addr->sa_family == AF_INET6 && memcmp(&((struct sockaddr_in6 *)addr->ifa_addr)->sin6_addr, expected_ip, sizeof(struct in6_addr)) == 0)
-        {
-            strcpy(name, addr->ifa_name);
-            goto cleanup;
-        }
+  for (struct ifaddrs *addr = addrs; addr != NULL; addr = addr->ifa_next) {
+    if (addr->ifa_addr->sa_family == AF_INET6 &&
+        memcmp(&((struct sockaddr_in6 *)addr->ifa_addr)->sin6_addr, expected_ip,
+               sizeof(struct in6_addr)) == 0) {
+      strcpy(name, addr->ifa_name);
+      goto cleanup;
     }
-    ret = -1;
+  }
+  ret = -1;
 
 cleanup:
-    if (addrs != NULL) freeifaddrs(addrs);
-    return ret;
+  if (addrs != NULL) freeifaddrs(addrs);
+  return ret;
 }
 
 #endif
 
-pcap_t * scamper_pcap_icmp6_open(const void *addr)
-{
+pcap_t *scamper_pcap_icmp6_open(const void *addr) {
   char errbuf[1024];
   char bpf_expr[1024];
   struct bpf_program fcode;
   char ip[100];
   char device[DEVICE_NAME_SIZE];
-  pcap_t * pcap = NULL;
+  pcap_t *pcap = NULL;
 
-  if (get_device_name_by_ip(device, addr) != 0)
-  {
-      printerror(__func__, "didn't find device");
-      goto err;
+  if (get_device_name_by_ip(device, addr) != 0) {
+    printerror(__func__, "didn't find device");
+    goto err;
   }
 
   pcap = pcap_open_live(device, BUFSIZ, 0, 10, errbuf);
   if (pcap == NULL) {
-      printerror(__func__, "cannot initialize pcap: %s", errbuf);
-      goto err;
+    printerror(__func__, "cannot initialize pcap: %s", errbuf);
+    goto err;
   }
 
 #ifdef _WIN32
@@ -598,22 +577,24 @@ pcap_t * scamper_pcap_icmp6_open(const void *addr)
 #endif
 
   addr_tostr(AF_INET6, addr, ip, sizeof(ip));
-  strcpy(bpf_expr, "icmp6 and (ip6[40] == 3 or ip6[40] == 0 or ip6[40] == 1 or ip6[40] == 2 or ip6[40] == 129) and dst ");
+  strcpy(bpf_expr,
+         "icmp6 and (ip6[40] == 3 or ip6[40] == 0 or ip6[40] == 1 or ip6[40] "
+         "== 2 or ip6[40] == 129) and dst ");
   strcat(bpf_expr, ip);
-  
+
   if (pcap_compile(pcap, &fcode, bpf_expr, 1, 0) < 0) {
-      printerror(__func__, "cannot compile bpf expression");
-      goto err;
+    printerror(__func__, "cannot compile bpf expression");
+    goto err;
   }
 
   if (pcap_setfilter(pcap, &fcode) != 0) {
-      printerror(__func__, "cannot set bpf filter");
-      goto err;
+    printerror(__func__, "cannot set bpf filter");
+    goto err;
   }
 
   return pcap;
 
- err:
-  if(pcap != NULL) scamper_pcap_icmp6_close(pcap);
+err:
+  if (pcap != NULL) scamper_pcap_icmp6_close(pcap);
   return NULL;
 }

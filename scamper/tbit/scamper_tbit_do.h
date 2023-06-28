@@ -37,9 +37,8 @@ void *scamper_do_tbit_alloc(char *str);
 
 void scamper_do_tbit_free(void *data);
 
-scamper_task_t *scamper_do_tbit_alloctask(void *data,
-					  scamper_list_t *list,
-					  scamper_cycle_t *cycle);
+scamper_task_t *scamper_do_tbit_alloctask(void *data, scamper_list_t *list,
+                                          scamper_cycle_t *cycle);
 
 int scamper_do_tbit_arg_validate(int argc, char *argv[], int *stop);
 

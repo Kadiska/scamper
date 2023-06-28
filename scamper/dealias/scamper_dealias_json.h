@@ -24,6 +24,6 @@
 #define __SCAMPER_DEALIAS_JSON_H
 
 int scamper_file_json_dealias_write(const scamper_file_t *sf,
-				    const struct scamper_dealias *dealias);
+                                    const struct scamper_dealias *dealias);
 
 #endif

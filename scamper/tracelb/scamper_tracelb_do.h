@@ -30,9 +30,8 @@
 
 void *scamper_do_tracelb_alloc(char *str);
 
-scamper_task_t *scamper_do_tracelb_alloctask(void *data,
-					     scamper_list_t *list,
-					     scamper_cycle_t *cycle);
+scamper_task_t *scamper_do_tracelb_alloctask(void *data, scamper_list_t *list,
+                                             scamper_cycle_t *cycle);
 
 int scamper_do_tracelb_arg_validate(int argc, char *argv[], int *stop);
 

@@ -44,18 +44,18 @@
 /*
  * these are the types of addresses that scamper understands
  */
-#define SCAMPER_ADDR_TYPE_IPV4     0x01 /* 32 bit IPv4 address */
-#define SCAMPER_ADDR_TYPE_IPV6     0x02 /* 128 bit IPv6 address */
+#define SCAMPER_ADDR_TYPE_IPV4 0x01     /* 32 bit IPv4 address */
+#define SCAMPER_ADDR_TYPE_IPV6 0x02     /* 128 bit IPv6 address */
 #define SCAMPER_ADDR_TYPE_ETHERNET 0x03 /* 48 bit ethernet mac address */
 #define SCAMPER_ADDR_TYPE_FIREWIRE 0x04 /* 64 bit firewire link address */
 
-#define SCAMPER_ADDR_TYPE_MAX      SCAMPER_ADDR_TYPE_FIREWIRE
+#define SCAMPER_ADDR_TYPE_MAX SCAMPER_ADDR_TYPE_FIREWIRE
 
 #define SCAMPER_ADDR_TYPE_IS_IPV4(a) ((a)->type == SCAMPER_ADDR_TYPE_IPV4)
 #define SCAMPER_ADDR_TYPE_IS_IPV6(a) ((a)->type == SCAMPER_ADDR_TYPE_IPV6)
 
-#define SCAMPER_ADDR_TYPE_IS_IP(a) ((a)->type == SCAMPER_ADDR_TYPE_IPV4 || \
-				    (a)->type == SCAMPER_ADDR_TYPE_IPV6)
+#define SCAMPER_ADDR_TYPE_IS_IP(a) \
+  ((a)->type == SCAMPER_ADDR_TYPE_IPV4 || (a)->type == SCAMPER_ADDR_TYPE_IPV6)
 
 /*
  * scamper_addr:
@@ -65,11 +65,10 @@
  * addresses should not count on the contents of the struct remaining
  * public.
  */
-typedef struct scamper_addr
-{
-  int   type;
+typedef struct scamper_addr {
+  int type;
   void *addr;
-  int   refcnt;
+  int refcnt;
   void *internal;
 } scamper_addr_t;
 
@@ -109,7 +108,7 @@ typedef struct scamper_addr
 scamper_addr_t *scamper_addr_alloc(const int type, const void *addr);
 #else
 scamper_addr_t *scamper_addr_alloc_dm(const int type, const void *addr,
-				      const char *file, const int line);
+                                      const char *file, const int line);
 #define scamper_addr_alloc(type, addr) \
   scamper_addr_alloc_dm((type), (addr), __FILE__, __LINE__)
 #endif
@@ -132,16 +131,16 @@ int scamper_addr_fbd(const scamper_addr_t *a, const scamper_addr_t *b);
  * become unwieldy to use
  */
 #define scamper_addr_alloc_ipv4(addr) \
- scamper_addr_alloc(SCAMPER_ADDR_TYPE_IPV4, addr)
+  scamper_addr_alloc(SCAMPER_ADDR_TYPE_IPV4, addr)
 
 #define scamper_addr_alloc_ipv6(addr) \
- scamper_addr_alloc(SCAMPER_ADDR_TYPE_IPV6, addr)
+  scamper_addr_alloc(SCAMPER_ADDR_TYPE_IPV6, addr)
 
 #define scamper_addr_alloc_ethernet(addr) \
- scamper_addr_alloc(SCAMPER_ADDR_TYPE_ETHERNET, addr)
+  scamper_addr_alloc(SCAMPER_ADDR_TYPE_ETHERNET, addr)
 
 #define scamper_addr_alloc_firewire(addr) \
- scamper_addr_alloc(SCAMPER_ADDR_TYPE_FIREWIRE, addr)
+  scamper_addr_alloc(SCAMPER_ADDR_TYPE_FIREWIRE, addr)
 
 /*
  * scamper_addr_cmp:
@@ -156,8 +155,8 @@ int scamper_addr_raw_cmp(const scamper_addr_t *a, const void *raw);
  *  given a scamper address, convert it to a string representation in the
  *  buffer of specified size.
  */
-const char *scamper_addr_tostr(const scamper_addr_t *sa,
-			       char *dst, const size_t size);
+const char *scamper_addr_tostr(const scamper_addr_t *sa, char *dst,
+                               const size_t size);
 
 /*
  * scamper_addr_size
@@ -187,11 +186,11 @@ void scamper_addrcache_free(scamper_addrcache_t *ac);
  *  return a pointer to a scamper_addr_t which corresponds to the address
  *  out of the cache; allocate the address from scratch if necessary
  */
-scamper_addr_t *scamper_addrcache_get(scamper_addrcache_t *ac,
-				      const int type, const void *addr);
+scamper_addr_t *scamper_addrcache_get(scamper_addrcache_t *ac, const int type,
+                                      const void *addr);
 
-scamper_addr_t *scamper_addrcache_resolve(scamper_addrcache_t *ac,
-					  const int af, const char *addr);
+scamper_addr_t *scamper_addrcache_resolve(scamper_addrcache_t *ac, const int af,
+                                          const char *addr);
 
 /*
  * scamper_addr_islinklocal:
@@ -213,15 +212,15 @@ int scamper_addr_isreserved(const scamper_addr_t *a);
  * become unwieldy to use
  */
 #define scamper_addrcache_get_ipv4(addrcache, addr) \
- scamper_addrcache_get(addrcache, SCAMPER_ADDR_TYPE_IPV4, addr)
+  scamper_addrcache_get(addrcache, SCAMPER_ADDR_TYPE_IPV4, addr)
 
 #define scamper_addrcache_get_ipv6(addrcache, addr) \
- scamper_addrcache_get(addrcache, SCAMPER_ADDR_TYPE_IPV6, addr)
+  scamper_addrcache_get(addrcache, SCAMPER_ADDR_TYPE_IPV6, addr)
 
 #define scamper_addrcache_get_ethernet(addrcache, addr) \
- scamper_addrcache_get(addrcache, SCAMPER_ADDR_TYPE_ETHERNET, addr)
+  scamper_addrcache_get(addrcache, SCAMPER_ADDR_TYPE_ETHERNET, addr)
 
 #define scamper_addrcache_get_firewire(addrcache, addr) \
- scamper_addrcache_get(addrcache, SCAMPER_ADDR_TYPE_FIREWIRE, addr)
+  scamper_addrcache_get(addrcache, SCAMPER_ADDR_TYPE_FIREWIRE, addr)
 
 #endif /* __SCAMPER_ADDR_H */

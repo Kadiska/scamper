@@ -53,43 +53,44 @@
 #endif
 
 #if defined(__linux__)
-struct ndmsg
-{
-  unsigned char   ndm_family;
-  unsigned char   ndm_pad1;
-  unsigned short  ndm_pad2;
-  int             ndm_ifindex;
-  uint16_t        ndm_state;
-  uint8_t         ndm_flags;
-  uint8_t         ndm_type;
+struct ndmsg {
+  unsigned char ndm_family;
+  unsigned char ndm_pad1;
+  unsigned short ndm_pad2;
+  int ndm_ifindex;
+  uint16_t ndm_state;
+  uint8_t ndm_flags;
+  uint8_t ndm_type;
 };
 
-struct rtattr
-{
-  unsigned short  rta_len;
-  unsigned short  rta_type;
+struct rtattr {
+  unsigned short rta_len;
+  unsigned short rta_type;
 };
 
-#define RTA_ALIGNTO           4
-#define RTA_ALIGN(len)        (((len)+RTA_ALIGNTO-1) & ~(RTA_ALIGNTO-1))
-#define RTA_LENGTH(len)       (RTA_ALIGN(sizeof(struct rtattr)) + (len))
-#define RTA_DATA(rta)         ((void*)(((char*)(rta)) + RTA_LENGTH(0)))
-#define RTA_OK(rta,len)       ((len) > 0 && (rta)->rta_len >= sizeof(struct rtattr) && \
-                               (rta)->rta_len <= (len))
-#define RTA_NEXT(rta,attrlen) ((attrlen) -= RTA_ALIGN((rta)->rta_len), \
-                               (struct rtattr*)(((char*)(rta)) + RTA_ALIGN((rta)->rta_len)))
-#define RTA_PAYLOAD(rta)      ((int)((rta)->rta_len) - RTA_LENGTH(0))
+#define RTA_ALIGNTO 4
+#define RTA_ALIGN(len) (((len) + RTA_ALIGNTO - 1) & ~(RTA_ALIGNTO - 1))
+#define RTA_LENGTH(len) (RTA_ALIGN(sizeof(struct rtattr)) + (len))
+#define RTA_DATA(rta) ((void *)(((char *)(rta)) + RTA_LENGTH(0)))
+#define RTA_OK(rta, len)                                   \
+  ((len) > 0 && (rta)->rta_len >= sizeof(struct rtattr) && \
+   (rta)->rta_len <= (len))
+#define RTA_NEXT(rta, attrlen)             \
+  ((attrlen) -= RTA_ALIGN((rta)->rta_len), \
+   (struct rtattr *)(((char *)(rta)) + RTA_ALIGN((rta)->rta_len)))
+#define RTA_PAYLOAD(rta) ((int)((rta)->rta_len) - RTA_LENGTH(0))
 
-#define NDA_DST         1
-#define NDA_LLADDR      2
-#define NDA_MAX        (NDA_LLADDR+1)
-#define NDA_RTA(r)      ((struct rtattr*)(((char*)(r)) + NLMSG_ALIGN(sizeof(struct ndmsg))))
+#define NDA_DST 1
+#define NDA_LLADDR 2
+#define NDA_MAX (NDA_LLADDR + 1)
+#define NDA_RTA(r) \
+  ((struct rtattr *)(((char *)(r)) + NLMSG_ALIGN(sizeof(struct ndmsg))))
 
-#define RTM_BASE        0x10
-#define RTM_NEWNEIGH   (RTM_BASE+12)
-#define RTM_GETNEIGH   (RTM_BASE+14)
-#define NETLINK_ROUTE   0
-#define NUD_REACHABLE   0x02
+#define RTM_BASE 0x10
+#define RTM_NEWNEIGH (RTM_BASE + 12)
+#define RTM_GETNEIGH (RTM_BASE + 14)
+#define NETLINK_ROUTE 0
+#define NUD_REACHABLE 0x02
 
 #endif /* __linux__ */
 
@@ -101,141 +102,129 @@ struct rtattr
 #include "utils.h"
 #include "mjl_splaytree.h"
 
-typedef struct addr2mac
-{
-  int               ifindex;
-  scamper_addr_t   *ip;
-  scamper_addr_t   *mac;
-  scamper_queue_t  *sq;
+typedef struct addr2mac {
+  int ifindex;
+  scamper_addr_t *ip;
+  scamper_addr_t *mac;
+  scamper_queue_t *sq;
   splaytree_node_t *node;
 } addr2mac_t;
 
 static splaytree_t *tree = NULL;
 extern scamper_addrcache_t *addrcache;
 
-static int addr2mac_cmp(const addr2mac_t *a, const addr2mac_t *b)
-{
-  if(a->ifindex < b->ifindex) return -1;
-  if(a->ifindex > b->ifindex) return  1;
+static int addr2mac_cmp(const addr2mac_t *a, const addr2mac_t *b) {
+  if (a->ifindex < b->ifindex) return -1;
+  if (a->ifindex > b->ifindex) return 1;
   return scamper_addr_cmp(a->ip, b->ip);
 }
 
-static void addr2mac_free(addr2mac_t *addr2mac)
-{
-  if(addr2mac->sq != NULL) scamper_queue_free(addr2mac->sq);
-  if(addr2mac->ip != NULL) scamper_addr_free(addr2mac->ip);
-  if(addr2mac->mac != NULL) scamper_addr_free(addr2mac->mac);
+static void addr2mac_free(addr2mac_t *addr2mac) {
+  if (addr2mac->sq != NULL) scamper_queue_free(addr2mac->sq);
+  if (addr2mac->ip != NULL) scamper_addr_free(addr2mac->ip);
+  if (addr2mac->mac != NULL) scamper_addr_free(addr2mac->mac);
   free(addr2mac);
   return;
 }
 
-static int addr2mac_expire(void *param)
-{
+static int addr2mac_expire(void *param) {
   addr2mac_t *a2m = param;
-  if(a2m->node != NULL) splaytree_remove_node(tree, a2m->node);
+  if (a2m->node != NULL) splaytree_remove_node(tree, a2m->node);
   addr2mac_free(a2m);
   return 0;
 }
 
 static addr2mac_t *addr2mac_alloc(const int ifindex, scamper_addr_t *ip,
-				  scamper_addr_t *mac, time_t expire)
-{
+                                  scamper_addr_t *mac, time_t expire) {
   struct timeval tv;
   addr2mac_t *a2m;
 
   tv.tv_sec = expire;
   tv.tv_usec = 0;
 
-  if((a2m = malloc_zero(sizeof(addr2mac_t))) == NULL ||
-     (a2m->sq = scamper_queue_event(&tv, addr2mac_expire, a2m)) == NULL)
-    {
-      printerror(__func__, "could not malloc addr2mac");
-      if(a2m != NULL) addr2mac_free(a2m);
-      return NULL;
-    }
+  if ((a2m = malloc_zero(sizeof(addr2mac_t))) == NULL ||
+      (a2m->sq = scamper_queue_event(&tv, addr2mac_expire, a2m)) == NULL) {
+    printerror(__func__, "could not malloc addr2mac");
+    if (a2m != NULL) addr2mac_free(a2m);
+    return NULL;
+  }
 
   a2m->ifindex = ifindex;
-  a2m->ip      = ip  != NULL ? scamper_addr_use(ip)  : NULL;
-  a2m->mac     = mac != NULL ? scamper_addr_use(mac) : NULL;
+  a2m->ip = ip != NULL ? scamper_addr_use(ip) : NULL;
+  a2m->mac = mac != NULL ? scamper_addr_use(mac) : NULL;
 
   return a2m;
 }
 
 static int addr2mac_add(const int ifindex, const int type, const void *ipraw,
-			const void *macraw, const time_t expire)
-{
+                        const void *macraw, const time_t expire) {
   const int mt = SCAMPER_ADDR_TYPE_ETHERNET;
   scamper_addr_t *mac = NULL;
-  scamper_addr_t *ip  = NULL;
+  scamper_addr_t *ip = NULL;
   addr2mac_t *addr2mac = NULL;
   char ipstr[128], macstr[128];
 
-  if((ip = scamper_addrcache_get(addrcache, type, ipraw)) == NULL)
-    {
-      printerror(__func__, "could not get ip");
-      goto err;
-    }
+  if ((ip = scamper_addrcache_get(addrcache, type, ipraw)) == NULL) {
+    printerror(__func__, "could not get ip");
+    goto err;
+  }
 
-  if((mac = scamper_addrcache_get(addrcache, mt, macraw)) == NULL)
-    {
-      printerror(__func__, "could not get mac");
-      goto err;
-    }
+  if ((mac = scamper_addrcache_get(addrcache, mt, macraw)) == NULL) {
+    printerror(__func__, "could not get mac");
+    goto err;
+  }
 
-  if((addr2mac = addr2mac_alloc(ifindex, ip, mac, expire)) == NULL)
-    {
-      goto err;
-    }
+  if ((addr2mac = addr2mac_alloc(ifindex, ip, mac, expire)) == NULL) {
+    goto err;
+  }
 
-  scamper_addr_free(ip);  ip  = NULL;
-  scamper_addr_free(mac); mac = NULL;
+  scamper_addr_free(ip);
+  ip = NULL;
+  scamper_addr_free(mac);
+  mac = NULL;
 
-  if((addr2mac->node = splaytree_insert(tree, addr2mac)) == NULL)
-    {
-      printerror(__func__, "could not add %s:%s to tree",
-		 scamper_addr_tostr(addr2mac->ip, ipstr, sizeof(ipstr)),
-		 scamper_addr_tostr(addr2mac->mac, macstr, sizeof(macstr)));
-      goto err;
-    }
+  if ((addr2mac->node = splaytree_insert(tree, addr2mac)) == NULL) {
+    printerror(__func__, "could not add %s:%s to tree",
+               scamper_addr_tostr(addr2mac->ip, ipstr, sizeof(ipstr)),
+               scamper_addr_tostr(addr2mac->mac, macstr, sizeof(macstr)));
+    goto err;
+  }
 
   scamper_debug(__func__, "ifindex %d ip %s mac %s expire %d", ifindex,
-		scamper_addr_tostr(addr2mac->ip, ipstr, sizeof(ipstr)),
-		scamper_addr_tostr(addr2mac->mac, macstr, sizeof(macstr)),
-		expire);
+                scamper_addr_tostr(addr2mac->ip, ipstr, sizeof(ipstr)),
+                scamper_addr_tostr(addr2mac->mac, macstr, sizeof(macstr)),
+                expire);
   return 0;
 
- err:
-  if(addr2mac != NULL) addr2mac_free(addr2mac);
-  if(mac != NULL) scamper_addr_free(mac);
-  if(ip != NULL) scamper_addr_free(ip);
+err:
+  if (addr2mac != NULL) addr2mac_free(addr2mac);
+  if (mac != NULL) scamper_addr_free(mac);
+  if (ip != NULL) scamper_addr_free(ip);
   return -1;
 }
 
-int scamper_addr2mac_add(int ifindex, scamper_addr_t *ip, scamper_addr_t *mac)
-{
+int scamper_addr2mac_add(int ifindex, scamper_addr_t *ip, scamper_addr_t *mac) {
   struct timeval tv;
   addr2mac_t *a2m = NULL;
   char ipstr[128], macstr[128];
 
-  if(scamper_addr2mac_whohas(ifindex, ip) != NULL)
-    return 0;
+  if (scamper_addr2mac_whohas(ifindex, ip) != NULL) return 0;
 
   gettimeofday_wrap(&tv);
-  if((a2m = addr2mac_alloc(ifindex, ip, mac, tv.tv_sec + 600)) == NULL)
+  if ((a2m = addr2mac_alloc(ifindex, ip, mac, tv.tv_sec + 600)) == NULL)
     return -1;
 
-  if((a2m->node = splaytree_insert(tree, a2m)) == NULL)
-    {
-      printerror(__func__, "could not add %s:%s to tree",
-		 scamper_addr_tostr(a2m->ip, ipstr, sizeof(ipstr)),
-		 scamper_addr_tostr(a2m->mac, macstr, sizeof(macstr)));
-      addr2mac_free(a2m);
-      return -1;
-    }
+  if ((a2m->node = splaytree_insert(tree, a2m)) == NULL) {
+    printerror(__func__, "could not add %s:%s to tree",
+               scamper_addr_tostr(a2m->ip, ipstr, sizeof(ipstr)),
+               scamper_addr_tostr(a2m->mac, macstr, sizeof(macstr)));
+    addr2mac_free(a2m);
+    return -1;
+  }
 
   scamper_debug(__func__, "ifindex %d ip %s mac %s", ifindex,
-		scamper_addr_tostr(a2m->ip, ipstr, sizeof(ipstr)),
-		scamper_addr_tostr(a2m->mac, macstr, sizeof(macstr)));
+                scamper_addr_tostr(a2m->ip, ipstr, sizeof(ipstr)),
+                scamper_addr_tostr(a2m->mac, macstr, sizeof(macstr)));
   return 0;
 }
 
@@ -244,188 +233,169 @@ int scamper_addr2mac_add(int ifindex, scamper_addr_t *ip, scamper_addr_t *mac)
  *
  * return the MAC address associated with an IP address, if it is cached.
  */
-scamper_addr_t *scamper_addr2mac_whohas(const int ifindex, scamper_addr_t *dst)
-{
+scamper_addr_t *scamper_addr2mac_whohas(const int ifindex,
+                                        scamper_addr_t *dst) {
   addr2mac_t findme, *addr2mac;
 
   findme.ifindex = ifindex;
   findme.ip = dst;
 
   /* see if this IP address has a record in our tree */
-  if((addr2mac = splaytree_find(tree, &findme)) != NULL)
-    {
-      return addr2mac->mac;
-    }
+  if ((addr2mac = splaytree_find(tree, &findme)) != NULL) {
+    return addr2mac->mac;
+  }
 
   return NULL;
 }
 
 #if defined(__linux__)
-static int addr2mac_init_linux()
-{
-  struct nlmsghdr   *nlmsg;
-  struct ndmsg      *ndmsg;
-  struct rtattr     *rta, *tb[NDA_MAX];
+static int addr2mac_init_linux() {
+  struct nlmsghdr *nlmsg;
+  struct ndmsg *ndmsg;
+  struct rtattr *rta, *tb[NDA_MAX];
   struct sockaddr_nl snl;
-  struct msghdr      msg;
-  struct iovec       iov;
-  struct timeval     tv;
-  pid_t              pid;
-  uint8_t            buf[16384];
-  ssize_t            ssize;
-  ssize_t            len;
-  int                rlen;
-  int                fd = -1;
-  void              *ip, *mac;
-  int                iptype;
+  struct msghdr msg;
+  struct iovec iov;
+  struct timeval tv;
+  pid_t pid;
+  uint8_t buf[16384];
+  ssize_t ssize;
+  ssize_t len;
+  int rlen;
+  int fd = -1;
+  void *ip, *mac;
+  int iptype;
 
   pid = getpid();
 
   memset(buf, 0, sizeof(buf));
   nlmsg = (struct nlmsghdr *)buf;
-  nlmsg->nlmsg_len   = NLMSG_LENGTH(sizeof(struct ndmsg));
-  nlmsg->nlmsg_type  = RTM_GETNEIGH;
+  nlmsg->nlmsg_len = NLMSG_LENGTH(sizeof(struct ndmsg));
+  nlmsg->nlmsg_type = RTM_GETNEIGH;
   nlmsg->nlmsg_flags = NLM_F_REQUEST | NLM_F_ROOT | NLM_F_MATCH;
-  nlmsg->nlmsg_seq   = 0;
-  nlmsg->nlmsg_pid   = pid;
+  nlmsg->nlmsg_seq = 0;
+  nlmsg->nlmsg_pid = pid;
 
   ndmsg = NLMSG_DATA(nlmsg);
   ndmsg->ndm_family = AF_UNSPEC;
 
-  if((fd = socket(PF_NETLINK, SOCK_DGRAM, NETLINK_ROUTE)) == -1)
-    {
-      printerror(__func__, "could not open netlink");
-      goto err;
-    }
+  if ((fd = socket(PF_NETLINK, SOCK_DGRAM, NETLINK_ROUTE)) == -1) {
+    printerror(__func__, "could not open netlink");
+    goto err;
+  }
 
-  #if defined (__ANDROID__)
-    if(android_get_device_api_level() >= 30)
-      {
-        goto done;
-      }
-  #endif
+#if defined(__ANDROID__)
+  if (android_get_device_api_level() >= 30) {
+    goto done;
+  }
+#endif
 
   len = nlmsg->nlmsg_len;
-  if((ssize = send(fd, buf, len, 0)) < len)
-    {
-      if(ssize == -1)
-	{
-	  printerror(__func__, "could not send netlink");
-	}
+  if ((ssize = send(fd, buf, len, 0)) < len) {
+    if (ssize == -1) {
+      printerror(__func__, "could not send netlink");
+    }
+    goto err;
+  }
+
+  gettimeofday_wrap(&tv);
+  for (;;) {
+    iov.iov_base = buf;
+    iov.iov_len = sizeof(buf);
+
+    msg.msg_name = &snl;
+    msg.msg_namelen = sizeof(snl);
+    msg.msg_iov = &iov;
+    msg.msg_iovlen = 1;
+    msg.msg_control = NULL;
+    msg.msg_controllen = 0;
+    msg.msg_flags = 0;
+
+    if ((len = recvmsg(fd, &msg, 0)) == -1) {
+      if (errno == EINTR) continue;
+      printerror(__func__, "could not recvmsg");
       goto err;
     }
 
-  gettimeofday_wrap(&tv);
-  for(;;)
-    {
-      iov.iov_base = buf;
-      iov.iov_len = sizeof(buf);
+    nlmsg = (struct nlmsghdr *)buf;
+    while (NLMSG_OK(nlmsg, len)) {
+      if (nlmsg->nlmsg_pid != pid || nlmsg->nlmsg_seq != 0) {
+        goto skip;
+      }
 
-      msg.msg_name = &snl;
-      msg.msg_namelen = sizeof(snl);
-      msg.msg_iov = &iov;
-      msg.msg_iovlen = 1;
-      msg.msg_control = NULL;
-      msg.msg_controllen = 0;
-      msg.msg_flags = 0;
+      if (nlmsg->nlmsg_type == NLMSG_DONE) {
+        goto done;
+      }
 
-      if((len = recvmsg(fd, &msg, 0)) == -1)
-	{
-	  if(errno == EINTR) continue;
-	  printerror(__func__, "could not recvmsg");
-	  goto err;
-	}
+      if (nlmsg->nlmsg_type == NLMSG_ERROR) {
+        scamper_debug(__func__, "nlmsg error");
+        goto err;
+      }
 
-      nlmsg = (struct nlmsghdr *)buf;
-      while(NLMSG_OK(nlmsg, len))
-	{
-	  if(nlmsg->nlmsg_pid != pid || nlmsg->nlmsg_seq != 0)
-	    {
-	      goto skip;
-	    }
+      /* get current neighbour entries only */
+      if (nlmsg->nlmsg_type != RTM_NEWNEIGH) {
+        goto skip;
+      }
 
-	  if(nlmsg->nlmsg_type == NLMSG_DONE)
-	    {
-	      goto done;
-	    }
+      /* make sure the address is reachable */
+      ndmsg = NLMSG_DATA(nlmsg);
+      if ((ndmsg->ndm_state & NUD_REACHABLE) == 0) {
+        goto skip;
+      }
 
-	  if(nlmsg->nlmsg_type == NLMSG_ERROR)
-	    {
-	      scamper_debug(__func__, "nlmsg error");
-	      goto err;
-	    }
+      /* make sure we can process this address type */
+      switch (ndmsg->ndm_family) {
+        case AF_INET:
+          iptype = SCAMPER_ADDR_TYPE_IPV4;
+          break;
 
-	  /* get current neighbour entries only */
-	  if(nlmsg->nlmsg_type != RTM_NEWNEIGH)
-	    {
-	      goto skip;
-	    }
+        case AF_INET6:
+          iptype = SCAMPER_ADDR_TYPE_IPV6;
+          break;
 
-	  /* make sure the address is reachable */
-	  ndmsg = NLMSG_DATA(nlmsg);
-	  if((ndmsg->ndm_state & NUD_REACHABLE) == 0)
-	    {
-	      goto skip;
-	    }
+        default:
+          goto skip;
+      }
 
-	  /* make sure we can process this address type */
-	  switch(ndmsg->ndm_family)
-	    {
-	    case AF_INET:
-	      iptype = SCAMPER_ADDR_TYPE_IPV4;
-	      break;
+      /* fill a table with parameters from the payload */
+      memset(tb, 0, sizeof(tb));
+      rlen = nlmsg->nlmsg_len - NLMSG_LENGTH(sizeof(struct ndmsg));
+      for (rta = NDA_RTA(ndmsg); RTA_OK(rta, rlen); rta = RTA_NEXT(rta, rlen)) {
+        if (rta->rta_type >= NDA_MAX) continue;
+        tb[rta->rta_type] = rta;
+      }
 
-	    case AF_INET6:
-	      iptype = SCAMPER_ADDR_TYPE_IPV6;
-	      break;
+      /*
+       * skip if we don't have a destination IP address, or if
+       * we don't have an ethernet mac address
+       */
+      if (tb[NDA_DST] == NULL || tb[NDA_LLADDR] == NULL ||
+          RTA_PAYLOAD(tb[NDA_LLADDR]) != 6) {
+        goto skip;
+      }
 
-	    default:
-	      goto skip;
-	    }
+      ip = RTA_DATA(tb[NDA_DST]);
+      mac = RTA_DATA(tb[NDA_LLADDR]);
 
-	  /* fill a table with parameters from the payload */
-	  memset(tb, 0, sizeof(tb));
-	  rlen = nlmsg->nlmsg_len - NLMSG_LENGTH(sizeof(struct ndmsg));
-	  for(rta = NDA_RTA(ndmsg); RTA_OK(rta,rlen); rta = RTA_NEXT(rta,rlen))
-	    {
-	      if(rta->rta_type >= NDA_MAX)
-		continue;
-	      tb[rta->rta_type] = rta;
-	    }
+      addr2mac_add(ndmsg->ndm_ifindex, iptype, ip, mac, tv.tv_sec + 60);
 
-	  /*
-	   * skip if we don't have a destination IP address, or if
-	   * we don't have an ethernet mac address
-	   */
-	  if(tb[NDA_DST] == NULL ||
-	     tb[NDA_LLADDR] == NULL || RTA_PAYLOAD(tb[NDA_LLADDR]) != 6)
-	    {
-	      goto skip;
-	    }
-
-	  ip = RTA_DATA(tb[NDA_DST]);
-	  mac = RTA_DATA(tb[NDA_LLADDR]);
-
-	  addr2mac_add(ndmsg->ndm_ifindex, iptype, ip, mac, tv.tv_sec+60);
-
-	skip:
-	  nlmsg = NLMSG_NEXT(nlmsg, len);
-	}
+    skip:
+      nlmsg = NLMSG_NEXT(nlmsg, len);
     }
+  }
 
- done:
+done:
   close(fd);
   return 0;
 
- err:
+err:
   close(fd);
   return -1;
 }
 #endif
 
 #if defined(HAVE_BSD_ARPCACHE)
-static void addr2mac_mib_make(int *mib, int af)
-{
+static void addr2mac_mib_make(int *mib, int af) {
   mib[0] = CTL_NET;
   mib[1] = PF_ROUTE;
   mib[2] = 0;
@@ -439,20 +409,19 @@ static void addr2mac_mib_make(int *mib, int af)
   return;
 }
 
-static int addr2mac_init_bsd(void)
-{
-  struct rt_msghdr      *rtm;
+static int addr2mac_init_bsd(void) {
+  struct rt_msghdr *rtm;
   struct sockaddr_inarp *sin;
-  struct sockaddr_in6   *sin6;
-  struct sockaddr_dl    *sdl;
-  struct timeval         tv;
-  time_t                 tt;
-  int                    iptype;
-  void                  *ip, *mac;
-  int                    mib[6];
-  void                  *vbuf = NULL;
-  uint8_t               *buf;
-  size_t                 i, j, size;
+  struct sockaddr_in6 *sin6;
+  struct sockaddr_dl *sdl;
+  struct timeval tv;
+  time_t tt;
+  int iptype;
+  void *ip, *mac;
+  int mib[6];
+  void *vbuf = NULL;
+  uint8_t *buf;
+  size_t i, j, size;
 
   /*
    * firstly, get the IPv4 ARP cache and load that.
@@ -460,187 +429,163 @@ static int addr2mac_init_bsd(void)
    * entry
    */
   addr2mac_mib_make(mib, AF_INET);
-  if(sysctl_wrap(mib, 6, &vbuf, &size) == -1)
-    {
-      printerror(__func__, "sysctl arp cache");
-      goto err;
-    }
+  if (sysctl_wrap(mib, 6, &vbuf, &size) == -1) {
+    printerror(__func__, "sysctl arp cache");
+    goto err;
+  }
 
   iptype = SCAMPER_ADDR_TYPE_IPV4;
   buf = (uint8_t *)vbuf;
   gettimeofday_wrap(&tv);
-  for(i=0; i<size; i += rtm->rtm_msglen)
-    {
-      j = i;
-      rtm = (struct rt_msghdr *)(buf + j); j += sizeof(struct rt_msghdr);
-      sin = (struct sockaddr_inarp *)(buf + j);
-      j += scamper_rtsock_roundup(sin->sin_len);
-      sdl = (struct sockaddr_dl *)(buf + j);
+  for (i = 0; i < size; i += rtm->rtm_msglen) {
+    j = i;
+    rtm = (struct rt_msghdr *)(buf + j);
+    j += sizeof(struct rt_msghdr);
+    sin = (struct sockaddr_inarp *)(buf + j);
+    j += scamper_rtsock_roundup(sin->sin_len);
+    sdl = (struct sockaddr_dl *)(buf + j);
 
-      /* don't deal with permanent arp entries at this time */
-      if(sdl->sdl_type != IFT_ETHER ||
-	 sdl->sdl_alen != ETHER_ADDR_LEN)
-	{
-	  continue;
-	}
-
-      ip = &sin->sin_addr;
-      mac = sdl->sdl_data + sdl->sdl_nlen;
-      if((time_t)rtm->rtm_rmx.rmx_expire < tv.tv_sec ||
-	 (time_t)rtm->rtm_rmx.rmx_expire > tv.tv_sec + 60)
-	tt = tv.tv_sec + 60;
-      else
-	tt = (time_t)rtm->rtm_rmx.rmx_expire;
-
-      addr2mac_add(sdl->sdl_index, iptype, ip, mac, tt);
+    /* don't deal with permanent arp entries at this time */
+    if (sdl->sdl_type != IFT_ETHER || sdl->sdl_alen != ETHER_ADDR_LEN) {
+      continue;
     }
-  if(vbuf != NULL)
-    {
-      free(vbuf);
-      vbuf = NULL;
-    }
+
+    ip = &sin->sin_addr;
+    mac = sdl->sdl_data + sdl->sdl_nlen;
+    if ((time_t)rtm->rtm_rmx.rmx_expire < tv.tv_sec ||
+        (time_t)rtm->rtm_rmx.rmx_expire > tv.tv_sec + 60)
+      tt = tv.tv_sec + 60;
+    else
+      tt = (time_t)rtm->rtm_rmx.rmx_expire;
+
+    addr2mac_add(sdl->sdl_index, iptype, ip, mac, tt);
+  }
+  if (vbuf != NULL) {
+    free(vbuf);
+    vbuf = NULL;
+  }
 
   /* now it is time to get the IPv6 neighbour discovery cache */
   addr2mac_mib_make(mib, AF_INET6);
-  if(sysctl_wrap(mib, 6, &vbuf, &size) == -1)
-    {
-      /*
-       * assume that EINVAL means that IPv6 support is not provided on
-       * this system
-       */
-      if(errno == EINVAL || errno == EAFNOSUPPORT)
-	return 0;
+  if (sysctl_wrap(mib, 6, &vbuf, &size) == -1) {
+    /*
+     * assume that EINVAL means that IPv6 support is not provided on
+     * this system
+     */
+    if (errno == EINVAL || errno == EAFNOSUPPORT) return 0;
 
-      printerror(__func__, "sysctl ndp cache");
-      goto err;
-    }
+    printerror(__func__, "sysctl ndp cache");
+    goto err;
+  }
 
   iptype = SCAMPER_ADDR_TYPE_IPV6;
   buf = (uint8_t *)vbuf;
   gettimeofday_wrap(&tv);
-  for(i=0; i<size; i += rtm->rtm_msglen)
-    {
-      j = i;
-      rtm = (struct rt_msghdr *)(buf + j); j += sizeof(struct rt_msghdr);
-      sin6 = (struct sockaddr_in6 *)(buf + j);
-      j += scamper_rtsock_roundup(sin6->sin6_len);
-      sdl = (struct sockaddr_dl *)(buf + j);
+  for (i = 0; i < size; i += rtm->rtm_msglen) {
+    j = i;
+    rtm = (struct rt_msghdr *)(buf + j);
+    j += sizeof(struct rt_msghdr);
+    sin6 = (struct sockaddr_in6 *)(buf + j);
+    j += scamper_rtsock_roundup(sin6->sin6_len);
+    sdl = (struct sockaddr_dl *)(buf + j);
 
-      if(sdl->sdl_family != AF_LINK ||
-	 sdl->sdl_type != IFT_ETHER ||
-	 sdl->sdl_alen != ETHER_ADDR_LEN ||
-	 (rtm->rtm_flags & RTF_HOST) == 0)
-	{
-	  continue;
-	}
-
-      /* clear out any embedded ifindex in a linklocal address */
-      if(IN6_IS_ADDR_LINKLOCAL(&sin6->sin6_addr))
-	{
-	  sin6->sin6_addr.s6_addr[2] = 0;
-	  sin6->sin6_addr.s6_addr[3] = 0;
-	}
-
-      ip = &sin6->sin6_addr;
-      mac = sdl->sdl_data + sdl->sdl_nlen;
-      if((time_t)rtm->rtm_rmx.rmx_expire < tv.tv_sec ||
-	 (time_t)rtm->rtm_rmx.rmx_expire > tv.tv_sec + 60)
-	tt = tv.tv_sec + 60;
-      else
-	tt = (time_t)rtm->rtm_rmx.rmx_expire;
-
-      addr2mac_add(sdl->sdl_index, iptype, ip, mac, tt);
+    if (sdl->sdl_family != AF_LINK || sdl->sdl_type != IFT_ETHER ||
+        sdl->sdl_alen != ETHER_ADDR_LEN || (rtm->rtm_flags & RTF_HOST) == 0) {
+      continue;
     }
-  if(vbuf != NULL)
-    {
-      free(vbuf);
-      vbuf = NULL;
+
+    /* clear out any embedded ifindex in a linklocal address */
+    if (IN6_IS_ADDR_LINKLOCAL(&sin6->sin6_addr)) {
+      sin6->sin6_addr.s6_addr[2] = 0;
+      sin6->sin6_addr.s6_addr[3] = 0;
     }
+
+    ip = &sin6->sin6_addr;
+    mac = sdl->sdl_data + sdl->sdl_nlen;
+    if ((time_t)rtm->rtm_rmx.rmx_expire < tv.tv_sec ||
+        (time_t)rtm->rtm_rmx.rmx_expire > tv.tv_sec + 60)
+      tt = tv.tv_sec + 60;
+    else
+      tt = (time_t)rtm->rtm_rmx.rmx_expire;
+
+    addr2mac_add(sdl->sdl_index, iptype, ip, mac, tt);
+  }
+  if (vbuf != NULL) {
+    free(vbuf);
+    vbuf = NULL;
+  }
 
   return 0;
 
- err:
-  if(vbuf != NULL) free(vbuf);
+err:
+  if (vbuf != NULL) free(vbuf);
   return -1;
 }
 #endif
 
 #ifdef _WIN32
 
-static int addr2mac_init_win32()
-{
-  struct timeval    tv;
+static int addr2mac_init_win32() {
+  struct timeval tv;
   PMIB_IPNET_TABLE2 table = NULL;
-  ULONG             size;
-  DWORD             dw;
+  ULONG size;
+  DWORD dw;
 
   gettimeofday_wrap(&tv);
   tv.tv_sec += 60;
 
-  if (GetIpNetTable2(AF_UNSPEC, &table) == 0)
-  {
-      for(dw=0; dw<table->NumEntries; dw++)
-	{
-          if (table->Table[dw].Address.si_family == AF_INET) {
-              addr2mac_add(table->Table[dw].InterfaceIndex, SCAMPER_ADDR_TYPE_IPV4,
-                  &(table->Table[dw].Address.Ipv4.sin_addr.s_addr),
-                  table->Table[dw].PhysicalAddress, tv.tv_sec);
-          }
-          else if (table->Table[dw].Address.si_family == AF_INET6) {
-              addr2mac_add(table->Table[dw].InterfaceIndex, SCAMPER_ADDR_TYPE_IPV6,
-                  &(table->Table[dw].Address.Ipv6.sin6_addr),
-                  table->Table[dw].PhysicalAddress, tv.tv_sec);
-          }
-
-	}
-      FreeMibTable(table);
+  if (GetIpNetTable2(AF_UNSPEC, &table) == 0) {
+    for (dw = 0; dw < table->NumEntries; dw++) {
+      if (table->Table[dw].Address.si_family == AF_INET) {
+        addr2mac_add(table->Table[dw].InterfaceIndex, SCAMPER_ADDR_TYPE_IPV4,
+                     &(table->Table[dw].Address.Ipv4.sin_addr.s_addr),
+                     table->Table[dw].PhysicalAddress, tv.tv_sec);
+      } else if (table->Table[dw].Address.si_family == AF_INET6) {
+        addr2mac_add(table->Table[dw].InterfaceIndex, SCAMPER_ADDR_TYPE_IPV6,
+                     &(table->Table[dw].Address.Ipv6.sin6_addr),
+                     table->Table[dw].PhysicalAddress, tv.tv_sec);
+      }
+    }
+    FreeMibTable(table);
   }
 
   return 0;
 }
 #endif
 
-int scamper_addr2mac_init()
-{
-  if((tree = splaytree_alloc((splaytree_cmp_t)addr2mac_cmp)) == NULL)
-    {
-      printerror(__func__, "could not alloc tree");
-      return -1;
-    }
+int scamper_addr2mac_init() {
+  if ((tree = splaytree_alloc((splaytree_cmp_t)addr2mac_cmp)) == NULL) {
+    printerror(__func__, "could not alloc tree");
+    return -1;
+  }
 
-  if(scamper_option_noinitndc() != 0)
-    return 0;
+  if (scamper_option_noinitndc() != 0) return 0;
 
 #ifdef HAVE_BSD_ARPCACHE
-  if(addr2mac_init_bsd() != 0)
-    {
-      return -1;
-    }
+  if (addr2mac_init_bsd() != 0) {
+    return -1;
+  }
 #endif
 
 #ifdef __linux__
-  if(addr2mac_init_linux() != 0)
-    {
-      return -1;
-    }
+  if (addr2mac_init_linux() != 0) {
+    return -1;
+  }
 #endif
 
 #ifdef _WIN32
-  if(addr2mac_init_win32() != 0)
-    {
-      return -1;
-    }
+  if (addr2mac_init_win32() != 0) {
+    return -1;
+  }
 #endif
 
   return 0;
 }
 
-void scamper_addr2mac_cleanup()
-{
-  if(tree != NULL)
-    {
-      splaytree_free(tree, (splaytree_free_t)addr2mac_free);
-      tree = NULL;
-    }
+void scamper_addr2mac_cleanup() {
+  if (tree != NULL) {
+    splaytree_free(tree, (splaytree_free_t)addr2mac_free);
+    tree = NULL;
+  }
   return;
 }

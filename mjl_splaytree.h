@@ -39,10 +39,10 @@
 typedef struct splaytree splaytree_t;
 typedef struct splaytree_node splaytree_node_t;
 
-typedef int  (*splaytree_cmp_t)(const void *a, const void *b);
-typedef int  (*splaytree_diff_t)(const void *a, const void *b);
+typedef int (*splaytree_cmp_t)(const void *a, const void *b);
+typedef int (*splaytree_diff_t)(const void *a, const void *b);
 typedef void (*splaytree_display_t)(const void *ptr, int pad);
-typedef int  (*splaytree_inorder_t)(void *ptr, void *entry);
+typedef int (*splaytree_inorder_t)(void *ptr, void *entry);
 typedef void (*splaytree_free_t)(void *ptr);
 typedef void (*splaytree_onremove_t)(void *ptr);
 
@@ -58,12 +58,12 @@ splaytree_node_t *splaytree_insert(splaytree_t *tree, const void *ptr);
 
 #ifdef DMALLOC
 /* dmalloc-enabled functions that do the same as the functions above */
-splaytree_t *splaytree_alloc_dm(splaytree_cmp_t cmp,
-				const char *file, const int line);
+splaytree_t *splaytree_alloc_dm(splaytree_cmp_t cmp, const char *file,
+                                const int line);
 splaytree_node_t *splaytree_insert_dm(splaytree_t *tree, const void *ptr,
-				      const char *file, const int line);
+                                      const char *file, const int line);
 #define splaytree_alloc(cmp) splaytree_alloc_dm((cmp), __FILE__, __LINE__)
-#define splaytree_insert(t,p) splaytree_insert_dm((t), (p), __FILE__, __LINE__)
+#define splaytree_insert(t, p) splaytree_insert_dm((t), (p), __FILE__, __LINE__)
 #endif
 
 void splaytree_free(splaytree_t *tree, splaytree_free_t free_ptr);
@@ -80,7 +80,7 @@ void *splaytree_find_ro(const splaytree_t *tree, const void *ptr);
 
 /* find a value in the tree closest to a particular value */
 void *splaytree_findclosest(splaytree_t *tree, const void *ptr,
-			    splaytree_diff_t diff);
+                            splaytree_diff_t diff);
 
 /* return the right most node on the left branch of the tree */
 void *splaytree_getrmlb(splaytree_t *tree);

@@ -33,6 +33,6 @@
 #define __SCAMPER_FILE_TEXT_TBIT_H
 
 int scamper_file_text_tbit_write(const scamper_file_t *sf,
-				 const scamper_tbit_t *tbit);
+                                 const scamper_tbit_t *tbit);
 
 #endif

@@ -36,30 +36,29 @@ typedef void (*threadpool_func_t)(void *);
 
 #ifndef DMALLOC
 threadpool_t *threadpool_alloc(int threadc);
-int threadpool_tail_push(threadpool_t *tp, threadpool_func_t func,
-			 void *param);
+int threadpool_tail_push(threadpool_t *tp, threadpool_func_t func, void *param);
 int threadpool_tail_push_onion(threadpool_t *tp, threadpool_func_t func,
-			       void *param);
+                               void *param);
 int threadpool_head_push_nolock(threadpool_t *tp, threadpool_func_t func,
-				void *param);
+                                void *param);
 #else
-threadpool_t *threadpool_alloc_dm(int threadc,
-				  const char *file, const int line);
+threadpool_t *threadpool_alloc_dm(int threadc, const char *file,
+                                  const int line);
 int threadpool_tail_push_dm(threadpool_t *tp, threadpool_func_t func,
-			    void *param, const char *file, const int line);
+                            void *param, const char *file, const int line);
 int threadpool_tail_push_onion_dm(threadpool_t *tp, threadpool_func_t func,
-				  void *param,
-				  const char *file, const int line);
+                                  void *param, const char *file,
+                                  const int line);
 int threadpool_head_push_nolock_dm(threadpool_t *tp, threadpool_func_t func,
-				   void *param,
-				   const char *file, const int line);
-#define threadpool_alloc(threadc)					\
-  threadpool_alloc_dm((threadc),  __FILE__, __LINE__)
-#define threadpool_tail_push(tp, func, param)				\
+                                   void *param, const char *file,
+                                   const int line);
+#define threadpool_alloc(threadc) \
+  threadpool_alloc_dm((threadc), __FILE__, __LINE__)
+#define threadpool_tail_push(tp, func, param) \
   threadpool_tail_push_dm((tp), (func), (param), __FILE__, __LINE__)
-#define threadpool_tail_push_onion(tp, func, param)			\
+#define threadpool_tail_push_onion(tp, func, param) \
   threadpool_tail_push_onion_dm((tp), (func), (param), __FILE__, __LINE__)
-#define threadpool_head_push_nolock(tp, func, param)			\
+#define threadpool_head_push_nolock(tp, func, param) \
   threadpool_head_push_nolock_dm((tp), (func), (param), __FILE__, __LINE__)
 #endif
 

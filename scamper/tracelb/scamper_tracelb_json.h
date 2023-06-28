@@ -24,6 +24,6 @@
 #define __SCAMPER_TRACELB_JSON_H
 
 int scamper_file_json_tracelb_write(const scamper_file_t *sf,
-				    const struct scamper_tracelb *trace);
+                                    const struct scamper_tracelb *trace);
 
 #endif

@@ -30,8 +30,8 @@
 
 int scamper_privsep_open_datalink(const int ifindex);
 
-int scamper_privsep_open_file(const char *file,
-			      const int flags, const mode_t mode);
+int scamper_privsep_open_file(const char *file, const int flags,
+                              const mode_t mode);
 
 int scamper_privsep_open_rtsock(void);
 
@@ -44,12 +44,14 @@ int scamper_privsep_open_unix(const char *file);
 
 int scamper_privsep_ipfw_init(void);
 int scamper_privsep_ipfw_cleanup(void);
-int scamper_privsep_ipfw_add(int n,int af,int p,void *s,void *d,int sp,int dp);
-int scamper_privsep_ipfw_del(int n,int af);
+int scamper_privsep_ipfw_add(int n, int af, int p, void *s, void *d, int sp,
+                             int dp);
+int scamper_privsep_ipfw_del(int n, int af);
 
 int scamper_privsep_pf_init(const char *anchor);
 int scamper_privsep_pf_cleanup(void);
-int scamper_privsep_pf_add(int n,int af,int p,void *s,void *d,int sp,int dp);
+int scamper_privsep_pf_add(int n, int af, int p, void *s, void *d, int sp,
+                           int dp);
 int scamper_privsep_pf_del(int n);
 
 int scamper_privsep_unlink(const char *file);

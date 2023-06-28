@@ -31,18 +31,15 @@
 typedef struct scamper_firewall_entry scamper_firewall_entry_t;
 
 #ifdef __SCAMPER_ADDR_H
-typedef struct scamper_firewall_rule
-{
+typedef struct scamper_firewall_rule {
   uint16_t type;
-  union
-  {
-    struct fivetuple
-    {
-      uint8_t         proto;
+  union {
+    struct fivetuple {
+      uint8_t proto;
       scamper_addr_t *src;
       scamper_addr_t *dst;
-      uint16_t        sport;
-      uint16_t        dport;
+      uint16_t sport;
+      uint16_t dport;
     } fivetuple;
   } un;
 } scamper_firewall_rule_t;
@@ -51,8 +48,8 @@ scamper_firewall_entry_t *scamper_firewall_entry_get(scamper_firewall_rule_t *);
 #endif
 
 #define sfw_5tuple_proto un.fivetuple.proto
-#define sfw_5tuple_src   un.fivetuple.src
-#define sfw_5tuple_dst   un.fivetuple.dst
+#define sfw_5tuple_src un.fivetuple.src
+#define sfw_5tuple_dst un.fivetuple.dst
 #define sfw_5tuple_sport un.fivetuple.sport
 #define sfw_5tuple_dport un.fivetuple.dport
 
@@ -65,13 +62,15 @@ void scamper_firewall_cleanup(void);
 #ifdef HAVE_IPFW
 int scamper_firewall_ipfw_init(void);
 void scamper_firewall_ipfw_cleanup(void);
-int scamper_firewall_ipfw_add(int n,int af,int p,void *s,void *d,int sp,int dp);
-int scamper_firewall_ipfw_del(int n,int af);
+int scamper_firewall_ipfw_add(int n, int af, int p, void *s, void *d, int sp,
+                              int dp);
+int scamper_firewall_ipfw_del(int n, int af);
 #endif
 
 #ifdef HAVE_PF
 int scamper_firewall_pf_init(const char *anchor);
-int scamper_firewall_pf_add(int n,int af,int p,void *s,void *d,int sp,int dp);
+int scamper_firewall_pf_add(int n, int af, int p, void *s, void *d, int sp,
+                            int dp);
 int scamper_firewall_pf_del(int n);
 void scamper_firewall_pf_cleanup(void);
 #endif

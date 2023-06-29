@@ -29,6 +29,7 @@ jobs:
     needs: linter
     runs-on: ubuntu-latest
     container: debian:bullseye
+    name: "Debian 11"
 
     steps:
       - uses: actions/checkout@v3
@@ -73,7 +74,14 @@ jobs:
 
     strategy:
       matrix:
-        arch: ["x86", "x64"]
+        include:
+          - arch: "x86"
+            msbuild-platform: "Win32"
+
+          - arch: "x64"
+            msbuild-platform: "x64"
+
+    name: "Windows (${{ matrix.arch }})"
 
     steps:
       - uses: actions/checkout@v3
@@ -82,4 +90,4 @@ jobs:
           msbuild-architecture: ${{ matrix.arch }}
 
       - name: Build binary
-        run: msbuild windows\scamper.vcxproj -t:rebuild -verbosity:diag -property:Configuration=Release -property:Platform=${{ matrix.arch }}
+        run: msbuild windows\scamper.vcxproj -t:rebuild -verbosity:diag -property:Configuration=Release -property:Platform=${{ matrix.msbuild-platform }}

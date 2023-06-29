@@ -908,7 +908,8 @@ static int get_device_name(char *name, const int ifindex) {
   ULONG ulOutBufLen = sizeof(IP_ADAPTER_ADDRESSES_LH);
   pAdapterInfo = (PIP_ADAPTER_ADDRESSES *)malloc(ulOutBufLen);
   if (pAdapterInfo == NULL) {
-    printf("Error allocating memory needed to call GetAdaptersinfo\n");
+    printerror(__func__,
+               "Error allocating memory needed to call GetAdaptersinfo\n");
     return 1;
   }
 
@@ -922,7 +923,8 @@ static int get_device_name(char *name, const int ifindex) {
     free(pAdapterInfo);
     pAdapterInfo = (IP_ADAPTER_INFO *)malloc(ulOutBufLen);
     if (pAdapterInfo == NULL) {
-      printf("Error allocating memory needed to call GetAdaptersinfo\n");
+      printerror(__func__,
+                 "Error allocating memory needed to call GetAdaptersinfo\n");
       return 1;
     }
   }

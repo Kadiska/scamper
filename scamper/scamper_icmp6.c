@@ -481,7 +481,8 @@ static int get_device_name_by_ip(char *name, struct in6_addr *expected_ip) {
   ULONG ulOutBufLen = sizeof(IP_ADAPTER_ADDRESSES_LH);
   pAdapterInfo = (PIP_ADAPTER_ADDRESSES *)malloc(ulOutBufLen);
   if (pAdapterInfo == NULL) {
-    printf("Error allocating memory needed to call GetAdaptersinfo\n");
+    printerror(__func__,
+               "Error allocating memory needed to call GetAdaptersinfo\n");
     return 1;
   }
 
@@ -495,7 +496,8 @@ static int get_device_name_by_ip(char *name, struct in6_addr *expected_ip) {
     free(pAdapterInfo);
     pAdapterInfo = (IP_ADAPTER_INFO *)malloc(ulOutBufLen);
     if (pAdapterInfo == NULL) {
-      printf("Error allocating memory needed to call GetAdaptersinfo\n");
+      printerror(__func__,
+                 "Error allocating memory needed to call GetAdaptersinfo\n");
       return 1;
     }
   }

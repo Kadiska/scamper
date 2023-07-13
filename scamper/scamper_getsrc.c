@@ -38,6 +38,38 @@ static int udp6 = -1;
 
 extern scamper_addrcache_t *addrcache;
 
+
+#ifdef _WIN32
+
+uint32_t mask_ip4(uint32_t ip, uint8_t prefix_len)
+{
+  uint32_t ipv4_netmask = prefix_len == 0 ? 0 : (0xFFFFFFFF << (32 - prefix_len)) & 0xFFFFFFFF;
+  return ip & ipv4_netmask;
+}
+
+static MIB_IPFORWARD_ROW2 *get_best_adapter(PMIB_IPFORWARD_TABLE2 table, struct sockaddr_storage * sas, BOOL include_virtual) {
+  MIB_IPFORWARD_ROW2 * res = NULL;
+
+  for (uint32_t idx = 0; idx < table->NumEntries; ++idx)
+  {
+    MIB_IPFORWARD_ROW2 * row = &(table->Table[idx]);
+ 
+    if (sas->ss_family == AF_INET && sas->ss_family == row->DestinationPrefix.Prefix.si_family) 
+    {
+ 
+      if (mask_ip4(((struct sockaddr_in *)sas)->sin_addr.S_un.S_addr,
+                   row->DestinationPrefix.PrefixLength) ==
+          mask_ip4(row->DestinationPrefix.Prefix.Ipv4.sin_addr.S_un.S_addr,
+                   row->DestinationPrefix.PrefixLength) && (row->NextHop.Ipv4.sin_addr.S_un.S_addr != 0 || include_virtual)) {
+        res = res == NULL || res->Metric > row->Metric ? row : res;
+      }
+    }  
+  }
+  return res;
+}
+
+#endif
+
 /*
  * scamper_getsrc
  *
@@ -45,6 +77,7 @@ extern scamper_addrcache_t *addrcache;
  * header to transmit probes to it.
  */
 scamper_addr_t *scamper_getsrc(const scamper_addr_t *dst, int ifindex) {
+#ifndef _WIN32
   struct sockaddr_storage sas;
   scamper_addr_t *src;
   socklen_t socklen, sockleno;
@@ -100,6 +133,69 @@ scamper_addr_t *scamper_getsrc(const scamper_addr_t *dst, int ifindex) {
   memset(&sas, 0, sizeof(sas));
   connect(sock, (struct sockaddr *)&sas, socklen);
   return src;
+#else
+  PMIB_IPFORWARD_TABLE2 table;
+  struct sockaddr_storage sas;
+
+  sockaddr_compose((struct sockaddr *)&sas, AF_INET, dst->addr, 80);
+
+  if (GetIpForwardTable2((dst->type == SCAMPER_ADDR_TYPE_IPV4 ? AF_INET : AF_INET6), &table) != NO_ERROR)
+      return NULL;
+
+  MIB_IPFORWARD_ROW2 *adapter = get_best_adapter(table, &sas, FALSE);
+
+  if (adapter == NULL) {
+    adapter = get_best_adapter(table, &sas, TRUE);
+  }
+  if (adapter == NULL) {
+    return NULL;
+  }
+
+  PIP_ADAPTER_ADDRESSES pAdapterInfo = NULL;
+  ULONG ulOutBufLen = sizeof(IP_ADAPTER_ADDRESSES_LH);
+
+    pAdapterInfo = (PIP_ADAPTER_ADDRESSES *)malloc(ulOutBufLen);
+  if (pAdapterInfo == NULL) {
+    printerror(__func__,
+               "Error allocating memory needed to call GetAdaptersinfo\n");
+    return 1;
+  }
+
+  // Make an initial call to GetAdaptersAddresses to get
+  // the necessary size into the ulOutBufLen variable
+  if (GetAdaptersAddresses(
+          AF_INET,
+          GAA_FLAG_INCLUDE_GATEWAYS | GAA_FLAG_INCLUDE_WINS_INFO |
+              GAA_FLAG_SKIP_ANYCAST | GAA_FLAG_SKIP_MULTICAST,
+          0, pAdapterInfo, &ulOutBufLen) == ERROR_BUFFER_OVERFLOW) {
+    free(pAdapterInfo);
+    pAdapterInfo = (IP_ADAPTER_INFO *)malloc(ulOutBufLen);
+    if (pAdapterInfo == NULL) {
+      printerror(__func__,
+                 "Error allocating memory needed to call GetAdaptersinfo\n");
+      return 1;
+    }
+  }
+
+  if (GetAdaptersAddresses(AF_INET,
+                           GAA_FLAG_INCLUDE_GATEWAYS |
+                               GAA_FLAG_INCLUDE_WINS_INFO |
+                               GAA_FLAG_SKIP_ANYCAST | GAA_FLAG_SKIP_MULTICAST,
+                           0, pAdapterInfo, &ulOutBufLen) != NO_ERROR)
+    return 1;
+
+    for (PIP_ADAPTER_ADDRESSES pAdapter = pAdapterInfo; pAdapter; pAdapter = pAdapter->Next) {
+    if (pAdapter->IfIndex == adapter->InterfaceIndex) {
+      struct sockaddr_in *ip =
+          ((struct sockaddr_in *)(pAdapter->FirstUnicastAddress->Address.lpSockaddr));
+      void *addr = addr = &(ip->sin_addr);
+      scamper_addr_t *src =
+          scamper_addrcache_get(addrcache, dst->type, addr);
+      return src;
+    }
+    }
+    return NULL;
+#endif
 }
 
 int scamper_getsrc_init() { return 0; }

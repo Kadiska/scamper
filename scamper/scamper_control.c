@@ -1237,7 +1237,7 @@ static int command_outfile_socket(client_t *client, char *buf) {
  */
 static int command_outfile_swap(client_t *client, char *buf) {
   scamper_outfile_t *a, *b;
-  char *files[2];
+  char *files[2] = {NULL, NULL};
   int cnt = 2;
 
   if (params_get(buf, files, &cnt) == -1) {
@@ -1810,7 +1810,9 @@ static int command_source_update(client_t *client, char *buf) {
   int i_autoreload, i_cycles;
   long l;
   int i, cnt, handler_cnt;
-  char *params[10], *next;
+  char *params[10] = {NULL, NULL, NULL, NULL, NULL,
+                      NULL, NULL, NULL, NULL, NULL};
+  char *next = NULL;
   param_t handlers[] = {
       {"autoreload", &autoreload},
       {"cycles", &cycles},

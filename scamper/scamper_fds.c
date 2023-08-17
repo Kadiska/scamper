@@ -709,7 +709,7 @@ static int fds_select(struct timeval *timeout) {
           goto err;
         default:
           int idx = ret - WAIT_OBJECT_0;
-          if (idx >= 0) {
+          if (idx >= 0 && idx < count_event) {
             scamper_fd_poll_t *t = fdps[idx];
 
             switch (t->fdn->type) {

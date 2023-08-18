@@ -507,6 +507,7 @@ int scamper_pcap_icmp4_recv(scamper_pcap_t *pcap, scamper_icmp_resp_t *resp) {
   ssize_t extlen;
 
   packet = pcap_next(pcap->pcap, &header);
+  if (packet == NULL) return -1;
 
   // Ethernet header frame is 14 bytes long
   if (header.len < 14) return -1;

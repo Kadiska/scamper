@@ -303,6 +303,7 @@ int scamper_pcap_icmp6_recv(scamper_pcap_t *pcap, scamper_icmp_resp_t *resp) {
   int offset_packet = 0;
 
   packet = pcap_next(pcap->pcap, &header);
+  if (packet == NULL) return -1;
 
   // Ethernet header frame is 14 bytes long while IPv6 header is 40 bytes long
   if (header.len < 14) return -1;

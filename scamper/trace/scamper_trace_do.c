@@ -2242,6 +2242,8 @@ static void do_trace_handle_icmp(scamper_task_t *task,
   uint16_t id;
   uint8_t proto;
 
+  if (trace == NULL || state == NULL) return;
+
   assert(state->mode <= MODE_MAX);
 
   /*
@@ -2249,6 +2251,7 @@ static void do_trace_handle_icmp(scamper_task_t *task,
    * it.  this is to avoid recording duplicate replies if an unbound socket
    * is in use.
    */
+
   if (ir->ir_fd != scamper_fd_fd_get(state->icmp)) {
     return;
   }

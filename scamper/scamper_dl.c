@@ -1007,6 +1007,7 @@ static int dl_linux_read(pcap_t *pcap, scamper_dl_t *node) {
   const u_char *packet;
 
   packet = pcap_next(pcap, &header);
+  if (packet == NULL) return -1;
 
   /* reset the datalink record */
   memset(&dl, 0, sizeof(dl));

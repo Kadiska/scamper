@@ -726,10 +726,10 @@ static int fds_select(struct timeval *timeout) {
                 t->cb(&(t->fdn->fd), t->param);
                 break;
             }
-            memcpy(events + idx, events + (idx + 1),
-                   (count_event - idx - 1) * sizeof(HANDLE));
-            memcpy(fdps + idx, fdps + (idx + 1),
-                   (count_event - idx - 1) * sizeof(scamper_fd_poll_t *));
+            memmove(&events[idx], &events[idx + 1],
+                    (count_event - idx - 1) * sizeof(events[0]));
+            memmove(&fdps[idx], &fdps[idx + 1],
+                    (count_event - idx - 1) * sizeof(fdps[0]));
             --count_event;
           }
       }

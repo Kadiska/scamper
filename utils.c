@@ -25,9 +25,6 @@
  *
  */
 
-#define __STDC_FORMAT_MACROS 1
-#include <inttypes.h>
-
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
@@ -778,8 +775,8 @@ int timeval_inrange_us(const struct timeval *a, const struct timeval *b,
 }
 
 char *timeval_tostr_us(const struct timeval *rtt, char *str, size_t len) {
-  uint64_t usec = (rtt->tv_sec * 1000000) + rtt->tv_usec;
-  snprintf(str, len, "%" PRIu64 ".%03" PRIu64, usec / 1000, usec % 1000);
+  uint32_t usec = (rtt->tv_sec * 1000000) + rtt->tv_usec;
+  snprintf(str, len, "%d.%03d", usec / 1000, usec % 1000);
   return str;
 }
 
